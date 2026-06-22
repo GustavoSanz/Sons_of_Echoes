@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { autoUpdater } = require('electron-updater');
 
 function createWindow () {
     // Cria a janela do jogo
@@ -20,6 +20,7 @@ function createWindow () {
 // Quando o Electron estiver pronto, abre a janela
 app.whenReady().then(createWindow);
 
+autoUpdater.checkForUpdatesAndNotify();
 
 
 // Fecha o programa totalmente quando fechares a janela
