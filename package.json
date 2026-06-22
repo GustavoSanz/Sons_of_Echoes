@@ -1,6 +1,8 @@
 {
   "name": "sons-of-echoes",
   "version": "1.0.0",
+  "description": "Projeto de Jogo SMI",
+  "author": "Gustavo Sanz",
   "main": "main.js",
   "scripts": {
   "start": "electron .",
@@ -9,7 +11,7 @@
   "publish-win": "electron-builder --win -p always"
 },
   "devDependencies": {
-    "electron": "^42.4.1",
+    "electron": "42.4.1",
     "electron-packager": "^17.1.2"
   },
 
