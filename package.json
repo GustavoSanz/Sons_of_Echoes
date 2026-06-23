@@ -10,6 +10,9 @@
   "build-linux": "electron-builder --linux",
   "publish-win": "electron-builder --win -p always"
 },
+"dependencies": {
+  "electron-updater": "^6.3.9" 
+},
   "devDependencies": {
     "electron": "42.4.1",
     "electron-packager": "^17.1.2"
