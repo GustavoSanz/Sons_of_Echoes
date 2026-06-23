@@ -17,7 +17,7 @@ const config = {
     fps: { target: 60, forceSetTimeOut: true },
     // Adicionamos as cenas por ordem de execução (Level1 substitui a antiga TestScene)
 // Adicionamos as cenas por ordem de execução
-    scene: [BootScene, LoadingScene, MenuScene, SceneAndar, ConnectionScene, SceneTutorial, Level1, SceneGrutaExterior, SceneGruta, SceneGrutaDescida]};
+    scene: [BootScene, LoadingScene, MenuScene, SceneAndar, ConnectionScene, SceneTutorial, Level1, SceneGrutaExterior, SceneGruta, SceneGrutaDescida, PauseMenu]};
 
 // Iniciar o jogo
 new Phaser.Game(config);

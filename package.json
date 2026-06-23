@@ -1,36 +1,39 @@
 {
   "name": "sons-of-echoes",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Projeto de Jogo SMI",
   "author": "Gustavo Sanz",
   "main": "main.js",
   "scripts": {
-  "start": "electron .",
-  "build-win": "electron-builder --win",
-  "build-linux": "electron-builder --linux",
-  "publish-win": "electron-builder --win -p always"
-},
-"dependencies": {
-  "electron-updater": "^6.3.9" 
-},
+    "start": "electron .",
+    "build-win": "electron-builder --win",
+    "build-linux": "electron-builder --linux",
+    "publish-win": "electron-builder --win -p always"
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9",
+    "express": "^5.2.1",
+    "socket.io": "^4.8.3"
+  },
   "devDependencies": {
     "electron": "42.4.1",
     "electron-packager": "^17.1.2"
   },
-
   "build": {
-  "appId": "com.gustavosanz.sonsofechoes",
-  "productName": "Sons of Echoes",
-  "publish": [{
-    "provider": "github",
-    "owner": "GustavoSanz",
-    "repo": "Sons_of_Echoes"
-  }],
-  "win": {
-    "target": "nsis"
-  },
-  "linux": {
-    "target": "AppImage"
+    "appId": "com.gustavosanz.sonsofechoes",
+    "productName": "Sons of Echoes",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "GustavoSanz",
+        "repo": "Sons_of_Echoes"
+      }
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
   }
-}
 }

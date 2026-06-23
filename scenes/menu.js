@@ -4,7 +4,7 @@ class MenuScene extends Phaser.Scene {
     }
 
     init(data) {
-        this.mensagemErro = data.erro || null;
+       this.mensagemErro = data.mensagemErro || data.erro || null;
     }
     
     create() {
@@ -34,73 +34,78 @@ class MenuScene extends Phaser.Scene {
         // ==========================================
         // 🛡️ CAMADA DE INTERAÇÃO DO BROWSER
         // ==========================================
-        this.peliculaInicio = this.add.rectangle(w / 2, h / 2, w, h, 0x000000, 1.0); // Fundo totalmente preto para esconder o menu
-        this.peliculaInicio.setOrigin(0.5);
-        this.peliculaInicio.setDepth(2000);
-        this.peliculaInicio.setInteractive();
+        if (this.mensagemErro) {
+            // Se vier de um erro, já houve clique! Vamos direto para o Menu sem vídeo.
+            this.prepararRestoDoMenu(w, h);
+            this.dispararFadeDoTitulo();
+            this.iniciarAudioMenu();
+        } else {
+            // Se for a primeira vez que abre o jogo, mostra as Trevas
+            this.peliculaInicio = this.add.rectangle(w / 2, h / 2, w, h, 0x000000, 1.0);
+            this.peliculaInicio.setOrigin(0.5);
+            this.peliculaInicio.setDepth(2000);
+            this.peliculaInicio.setInteractive();
 
-        this.textoInicio = this.add.text(w / 2, h / 2, 'Clica para entrar nas Trevas...', {
-            fontFamily: 'retroFont',
-            fontSize: '48px',
-            fill: '#ffffff'
-        });
-        this.textoInicio.setOrigin(0.5);
-        this.textoInicio.setDepth(2001);
+            this.textoInicio = this.add.text(w / 2, h / 2, 'Clica para entrar nas Trevas...', {
+                fontFamily: 'retroFont',
+                fontSize: '48px',
+                fill: '#ffffff'
+            });
+            this.textoInicio.setOrigin(0.5);
+            this.textoInicio.setDepth(2001);
 
-        this.prepararRestoDoMenu(w, h);
+            this.prepararRestoDoMenu(w, h);
 
-        // 🎬 LÓGICA NOVA: Clicar despoleta o Vídeo da Frase, e só depois o Menu!
-        this.peliculaInicio.on('pointerdown', () => {
-            this.peliculaInicio.disableInteractive(); // Impede duplo clique
+            // 🎬 LÓGICA NOVA: Clicar despoleta o Vídeo da Frase, e só depois o Menu!
+            this.peliculaInicio.on('pointerdown', () => {
+                this.peliculaInicio.disableInteractive(); // Impede duplo clique
 
-            this.tweens.add({
-                targets: this.textoInicio,
-                alpha: 0,
-                duration: 400,
-                onComplete: () => {
-                    this.textoInicio.destroy();
-
-                   // Arranca o vídeo da Frase
-                    let videoIntro = this.add.video(w / 2, h / 2, 'intro_video').setOrigin(0.5).setDepth(2500);
-                    
-                    // 🔥 Esperamos o vídeo começar a tocar para forçar a escala!
-                    // Isto garante que o vídeo já carregou e o Phaser não dá erro.
-                    videoIntro.on('playing', () => {
-                        videoIntro.setDisplaySize(w, h);
-                    });
-
-                    videoIntro.play();
-
-                    // Permite ao jogador saltar a intro com um clique no ecrã
-                    let podeSaltar = true;
-                    this.input.once('pointerdown', () => {
-                        if (podeSaltar && videoIntro && videoIntro.isPlaying()) {
-                            videoIntro.stop();
-                            videoIntro.emit('complete');
-                        }
-                    });
-
-                    // Quando o vídeo acabar, destrói a película e revela o Menu
-                    videoIntro.once('complete', () => {
-                        podeSaltar = false;
-                        videoIntro.destroy();
+                this.tweens.add({
+                    targets: this.textoInicio,
+                    alpha: 0,
+                    duration: 400,
+                    onComplete: () => {
+                        this.textoInicio.destroy();
                         
-                        this.tweens.add({
-                            targets: this.peliculaInicio,
-                            alpha: 0,
-                            duration: 800,
-                            onComplete: () => {
-                                this.peliculaInicio.destroy();
+                        // Arranca o vídeo da Frase
+                        let videoIntro = this.add.video(w / 2, h / 2, 'intro_video').setOrigin(0.5).setDepth(2500);
+                        
+                        videoIntro.on('playing', () => {
+                            videoIntro.setDisplaySize(w, h);
+                        });
+
+                        videoIntro.play();
+
+                        // Permite ao jogador saltar a intro com um clique no ecrã
+                        let podeSaltar = true;
+                        this.input.once('pointerdown', () => {
+                            if (podeSaltar && videoIntro && videoIntro.isPlaying()) {
+                                videoIntro.stop();
+                                videoIntro.emit('complete');
                             }
                         });
 
-                        this.iniciarAudioMenu();
-                        this.dispararFadeDoTitulo();
-                    });
-                }
-            });
-        });
+                        // Quando o vídeo acabar, destrói a película e revela o Menu
+                        videoIntro.once('complete', () => {
+                            podeSaltar = false;
+                            videoIntro.destroy();
+                            
+                            this.tweens.add({
+                                targets: this.peliculaInicio,
+                                alpha: 0,
+                                duration: 800,
+                                onComplete: () => {
+                                    this.peliculaInicio.destroy();
+                                }
+                            });
 
+                            this.iniciarAudioMenu();
+                            this.dispararFadeDoTitulo();
+                        });
+                    }
+                });
+            });
+        }
         // ==========================================
         // 🦇 SISTEMA DE SOM ALEATÓRIO E GERIDO
         // ==========================================
@@ -122,37 +127,7 @@ class MenuScene extends Phaser.Scene {
             }
         });
 
-        // ==========================================
-// SISTEMA DE MENSAGENS DE ERRO (MULTIPLAYER)
-// ==========================================
-if (this.mensagemErro) {
-    let w = this.cameras.main.width;
-    
-    // Cria o texto do erro no topo do ecrã
-    let txtErro = this.add.text(w / 2, 80, this.mensagemErro, { 
-        fontFamily: 'Arial', 
-        fontSize: '22px', 
-        fill: '#ff4444', 
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        padding: { x: 15, y: 15 },
-        align: 'center',
-        border: '1px solid #ff0000'
-    }).setOrigin(0.5).setDepth(100);
 
-    // Faz a mensagem desaparecer passados 5 segundos (5000 ms)
-    this.time.delayedCall(5000, () => {
-        // Cria uma animação suave para o texto ir ficando transparente (alpha 0)
-        this.tweens.add({
-            targets: txtErro,
-            alpha: 0,
-            duration: 1000, // Demora 1 segundo a desvanecer
-            onComplete: () => {
-                txtErro.destroy(); // Apaga o texto da memória do jogo
-                this.mensagemErro = null; // Limpa a variável
-            }
-        });
-    });
-}
     }
 
     iniciarAudioMenu() {
@@ -240,18 +215,41 @@ if (this.mensagemErro) {
 this.nomeJogador = localStorage.getItem('orin_nickname') || "Desconhecido";
    
 
+   // ==========================================================================
+        // SISTEMA DE MENSAGENS DE ERRO (CAIXA VERMELHA CENTRAL)
+        // ==========================================================================
         if (this.mensagemErro) {
-            let caixaErro = this.add.rectangle(w / 2, h / 2 - 120, 800, 100, 0xff0000, 0.7).setOrigin(0.5).setStrokeStyle(2, 0xffffff);
-            let textoErro = this.add.text(w / 2, h / 2 - 120, this.mensagemErro, {
+            let w = this.cameras.main.width;
+            let h = this.cameras.main.height;
+
+            // 🔊 TOCA O SOM DO ERRO AQUI!
+            this.sound.play('som_erro', { volume: 0.6 }); 
+
+            // Cria o fundo vermelho com borda branca
+            let caixaErro = this.add.rectangle(w / 2, h / 2 - 20, 500, 80, 0xcc0000).setOrigin(0.5).setDepth(100);
+            caixaErro.setStrokeStyle(2, 0xffffff); 
+
+            // Cria o texto do erro centrado
+            let txtErro = this.add.text(w / 2, h / 2 - 20, this.mensagemErro, {
                 fontFamily: retroFont,
                 fontSize: '26px',
                 fill: '#ffffff',
                 align: 'center'
-            }).setOrigin(0.5);
-            
-            caixaErro.setAlpha(0);
-            textoErro.setAlpha(0);
-            this.elementosMenu.push(caixaErro, textoErro);
+            }).setOrigin(0.5).setDepth(101);
+
+            // Faz a mensagem desaparecer passados 5 segundos
+            this.time.delayedCall(5000, () => {
+                this.tweens.add({
+                    targets: [caixaErro, txtErro],
+                    alpha: 0,
+                    duration: 1000,
+                    onComplete: () => {
+                        caixaErro.destroy();
+                        txtErro.destroy();
+                        this.mensagemErro = null;
+                    }
+                });
+            });
         }
 
         // ==========================================================================
@@ -375,7 +373,7 @@ btnChangelog.on('pointerdown', () => {
 
 
        // ==========================================================================
-        // 📜 MARCA DE ÁGUA DO VIAJANTE
+        // 📜 MARCA DE ÁGUA DO VIAJANTE (CLICÁVEL PARA MUDAR O NOME)
         // ==========================================================================
         this.textoViajante = this.add.text(w - 50, h - 50, `Viajante: ${this.nomeJogador}`, {
             fontFamily: retroFont,
@@ -385,9 +383,18 @@ btnChangelog.on('pointerdown', () => {
         this.textoViajante.setOrigin(1, 0.5).setAlpha(0); 
         this.elementosMenu.push(this.textoViajante);
 
-        // A PONTE DE COMUNICAÇÃO: O HTML chama isto para atualizar o jogo ao vivo!
+        // Torna o texto num botão escondido
+        this.textoViajante.setInteractive({ useHandCursor: true });
+        this.textoViajante.on('pointerdown', () => {
+            const container = document.getElementById('name-input-container');
+            if (container) {
+                container.style.display = 'block'; // Abre a caixa HTML novamente!
+            }
+        });
+
+        // A PONTE DE COMUNICAÇÃO (Mantém-se igual)
         window.atualizarNomeMenu = (novoNome) => {
-            this.nomeJogador = novoNome; // Atualiza a variável que vai para o Multiplayer
+            this.nomeJogador = novoNome;
             if (this.textoViajante) {
                 this.textoViajante.setText(`Viajante: ${novoNome}`);
             }

@@ -99,5 +99,6 @@ class SceneGrutaExterior extends Phaser.Scene {
                 });
             }
         }
+        
     }
 }

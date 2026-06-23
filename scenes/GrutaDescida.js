@@ -151,5 +151,7 @@ class SceneGrutaDescida extends Phaser.Scene {
 
         let orinBloqueado = (this.player.isDead || this.player.isCasting || this.player.isHurt);
         this.player.updatePlayer(time, orinBloqueado);
+
+        
     }
 }

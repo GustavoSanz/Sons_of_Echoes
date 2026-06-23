@@ -66,6 +66,8 @@ class LoadingScene extends Phaser.Scene {
         this.load.audio('som_hurt', 'assets/audio/snd_hurt1.wav'); 
         this.load.audio('som_hurt_c', 'assets/audio/snd_hurt1_c.wav'); 
         this.load.audio('som_vitoria', 'assets/audio/snd_dumbvictory.wav');
+        this.load.audio('som_erro', 'assets/audio/snd_bluh.wav');
+        
 
         // 🎬 VÍDEOS
         this.load.video('intro_video', 'assets/Menu/Intro_v2.mp4');

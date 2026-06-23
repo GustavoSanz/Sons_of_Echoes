@@ -252,6 +252,23 @@ class SceneTutorial extends Phaser.Scene {
         
         // A MAGIA VAI FUNCIONAR AGORA (o Player.js já a reconhece!)
         this.player.updatePlayer(time, orinBloqueado);
+
+        // Lógica da Tecla ESC para Pausa (Versão Universal)
+        let teclaEsc = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+
+        teclaEsc.on('down', () => {
+            if (this.scene.isActive('PauseMenu')) return;
+
+            // Enviamos dinamicamente a "chave" da cena atual para o Pause saber quem somos
+            let dadosPausa = { cenaOrigem: this.scene.key };
+
+            if (this.isMultiplayer) { 
+                this.scene.launch('PauseMenu', dadosPausa); 
+            } else {
+                this.scene.pause(this.scene.key); // Pausa a cena atual
+                this.scene.launch('PauseMenu', dadosPausa); // Lança o menu
+            }
+        });
     }
 
     criarAnimacoesPara(c) {

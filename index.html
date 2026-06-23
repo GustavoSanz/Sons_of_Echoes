@@ -123,7 +123,7 @@
 
     <div style="font-family: 'VT323'; position: absolute; visibility: hidden;">.</div>
 
-    <div id="game-version">v1.0.2</div>
+    <div id="game-version"></div>
 
     <div id="name-input-container">
         <h2>Identifica-te</h2>
@@ -135,6 +135,30 @@
     <div id="changelog-box">
         <h2>Changelog</h2>
         <ul>
+            <li><span class="versao">v1.0.3</span><br>
+            E chegou a nova versão 1.0.3!! Sim, tem muita coisa porque a versão anterior tinha MUITOS erros que não tinha me apercebido -.- aqui está as mudanças:<br>
+            
+                🛡️ Novidades & Sistemas Base: <br>
+            - Controlo de Versões Centralizado.<br>
+            - Menu de Pausa Universal.<br>
+            - Sistema de Bloqueio Inteligente.<br>
+                🛠️ Correções de Bugs Críticos (Bug Fixes): <br>
+            - Fuga do Ecrã das Trevas.<br>
+            - Feedback de Erros Aprimorado.<br>
+            - Estabilização de Ligação (CORS).<br>
+            - Limpeza Geral de Código.<br>
+            - O Falso Crash do Ping/Pong.<br>
+            - Conflitos Singleplayer vs Multiplayer.<br>
+                🌐 Multiplayer & Networking:<br>
+            - O Porteiro Implacável.<br>
+            - Desconexão Real e Limpeza de Nomes.<br>
+            O multiplayer está com problemas de sincronização, então esteja a espera de erros.
+            <br>
+            <br>
+            Para mais detalhes, está tudo no Github.<br>
+            (Espero que esta versão seja estável)
+
+            </li>
            <li><span class="versao">v1.0.2</span><br>
                 - Implementação de Fecho Nativo (Exit).<br>
                 - Regresso ao menu principal em caso de falha de conexão.<br>
@@ -211,10 +235,11 @@
             }
         };
     </script>
-
+    <script src="config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     
+    <script src="pause.js"></script>
     <script src="scenes/bootscene.js"></script>
     <script src="scenes/menu.js"></script>
     <script src="scenes/andar.js"></script>
@@ -227,5 +252,11 @@
     <script src="scenes/GrutaDescida.js"></script>
     <script src="scenes/tutorial.js"></script>
     <script src="game.js"></script>
+    
+
+    <script>
+    // Procura a div pelo ID e escreve lá dentro a versão que vem do config.js!
+    document.getElementById("game-version").innerText = window.VERSAO_JOGO;
+</script>
 </body>
 </html>

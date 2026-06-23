@@ -20,7 +20,8 @@ class ConnectionScene extends Phaser.Scene {
         // const ENDERECO_SERVIDOR = "https://o-teu-servidor-no-render.com"; // Usar quando alojares o Node.js online
 
         // Passamos o endereço diretamente para a função io()
-        this.socket = io(ENDERECO_SERVIDOR, { query: queryStr, reconnectionAttempts: 1, timeout: 5000 });
+        this.socket = io(ENDERECO_SERVIDOR, { query: {versao: window.VERSAO_JOGO, nome: this.nomeJogador }, queryStr, reconnectionAttempts: 1, timeout: 5000 });
+        
         // ==========================================================================
 
         this.socket.on('connect', () => {

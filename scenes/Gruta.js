@@ -272,6 +272,8 @@ class SceneGruta extends Phaser.Scene {
                 }
             }
         });
+        
+      
     }
 
     criarAnimacoesMonstro() {

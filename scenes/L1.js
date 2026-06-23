@@ -11,17 +11,6 @@ class Level1 extends Phaser.Scene {
     }
 
     create() {
-        this.socket.on('disconnect', () => {
-    console.log('A ligação caiu a meio do jogo!');
-    
-    // Pára tudo e atira o jogador de volta para o menu com um aviso!
-    this.socket.disconnect();
-    this.scene.stop();
-    this.scene.start('MenuScene', { erro: '[ERR-404]\nFoste desconectado do servidor a meio da partida!' });
-});
-
-
-
         this.isMultiplayer = (this.modoJogo === 'multiplayer' || this.isSpectatorMode);
         this.outrosJogadores = this.add.group();
         this.minhaCor = 'Original';
@@ -33,7 +22,7 @@ class Level1 extends Phaser.Scene {
         this.time.delayedCall(4000, () => { this.nomesDesvaneceram = true; });
 
         if (this.isMultiplayer && this.socket) {
-            this.socket.on('pingServidor', (t) => { this.socket.emit('pongCalculo', t); });
+            this.socket.on('pingServidor', (t) => { this.socket?.emit('pongCalculo', t); });
 
             this.socket.on('alertaServidor', (msg) => {
                 let w = this.cameras.main.width;
@@ -124,9 +113,6 @@ class Level1 extends Phaser.Scene {
         this.anims.create({ key: 'moeda_gira', frames: this.anims.generateFrameNumbers('moeda_sprite', { start: 0, end: 6 }), frameRate: 10, repeat: -1 });
         this.anims.create({ key: 'orbe_animado', frames: this.anims.generateFrameNumbers('orbe_magico', { start: 0, end: 1 }), frameRate: 12, repeat: -1 });
 
-        // ==========================================
-        // 🚪 TRANSIÇÃO INVISÍVEL NO FIM DO MAPA (5900)
-        // ==========================================
         this.portaGruta = this.add.zone(5900, 540, 200, 1080);
         this.physics.add.existing(this.portaGruta, true);
         this.aMudarDeCena = false;
@@ -143,20 +129,15 @@ class Level1 extends Phaser.Scene {
             this.physics.add.overlap(this.player, this.moedasGroup, this.coletarMoeda, null, this);
             this.physics.add.overlap(this.player, this.grupoCleitons, (jogador, cleiton) => { this.curarOrin(cleiton); });
             
-            // 🔥 LÓGICA DE ANDAR SOZINHO PARA FORA DO MAPA
             this.physics.add.overlap(this.player, this.portaGruta, () => {
                 if (!this.aMudarDeCena && !this.player.isDead) {
                     this.aMudarDeCena = true;
-                    this.player.setVelocityX(150); // Força-o a andar para a direita
+                    this.player.setVelocityX(150); 
                     this.player.mudarAnimacao('walk');
                     
                     this.cameras.main.fadeOut(1500, 0, 0, 0);
                     this.cameras.main.once('camerafadeoutcomplete', () => {
-                        let dadosParaGruta = {
-                            modo: this.modoJogo,
-                            nome: this.meuNomeTexto,
-                            hasCleiton: this.hasCleiton
-                        };
+                        let dadosParaGruta = { modo: this.modoJogo, nome: this.meuNomeTexto, hasCleiton: this.hasCleiton };
                         this.scene.start('SceneGrutaExterior', dadosParaGruta);
                     });
                 }
@@ -172,8 +153,6 @@ class Level1 extends Phaser.Scene {
             this.spawnMoedaNoMapa(1250, 850);
             this.spawnMoedaNoMapa(2400, 850);
             this.spawnMoedaNoMapa(3500, 850);
-            
-            // REMOVIDO EXCESSO DE CLEITONS (Deixei só 1 a meio da floresta)
             this.spawnCleiton(2800, 850);
         }
 
@@ -184,7 +163,6 @@ class Level1 extends Phaser.Scene {
         this.keyI = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.I);
         this.keyH = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.H); 
 
-        // UI E INVENTÁRIO
         this.vidaUI = this.add.sprite(30, 20, 'barravida_sprite').setOrigin(0, 0).setScrollFactor(0).setScale(0.5).setDepth(100); 
         this.manaUI = this.add.sprite(30, 110, 'barramana_sprite').setOrigin(0, 0).setScrollFactor(0).setScale(0.5).setDepth(100); 
         this.iconeMoedaUI = this.add.sprite(1730, 75, 'moeda_sprite').setScale(0.25).setScrollFactor(0).setDepth(100);
@@ -197,7 +175,7 @@ class Level1 extends Phaser.Scene {
         this.iconeCleitonInv = this.add.sprite((1920 / 2) - 120, (1080 / 2) + 70, 'cleiton_idle').setDepth(2002).setScale(0.12).setVisible(false).play('cleiton_idle_anim');
 
         this.toggleInventario = () => {
-            if (this.aMudarDeCena) return; // Não abre enquanto muda de nível!
+            if (this.aMudarDeCena) return; 
             this.isInventarioAberto = !this.isInventarioAberto;
             this.invAberto.setVisible(this.isInventarioAberto);
             this.iconeCleitonInv.setVisible(this.isInventarioAberto && this.hasCleiton);
@@ -213,6 +191,24 @@ class Level1 extends Phaser.Scene {
             this.vidaUI.setFrame(this.player.vidaAtual); 
             this.manaUI.setFrame(15 - this.player.manaAtual); 
         }
+
+        // ===============================================
+        // O CÓDIGO DA TECLA ESC FICA AQUI DENTRO DO CREATE!
+        // ===============================================
+        let teclaEsc = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+
+        teclaEsc.on('down', () => {
+            if (this.scene.isActive('PauseMenu')) return;
+
+            let dadosPausa = { cenaOrigem: this.scene.key };
+
+            if (this.isMultiplayer) { 
+                this.scene.launch('PauseMenu', dadosPausa); 
+            } else {
+                this.scene.pause(this.scene.key); 
+                this.scene.launch('PauseMenu', dadosPausa); 
+            }
+        });
     }
 
     spawnCleiton(x, y) {
@@ -276,16 +272,14 @@ class Level1 extends Phaser.Scene {
         this.anims.create({ key: 'death1_' + c, frames: this.anims.generateFrameNumbers('death1_' + c, { start: 0, end: 7 }), frameRate: 15, repeat: 0 });
         this.anims.create({ key: 'death2_' + c, frames: this.anims.generateFrameNumbers('death2_' + c, { start: 0, end: 7 }), frameRate: 10, repeat: 0 });
         this.anims.create({ key: 'hurt_' + c, frames: this.anims.generateFrameNumbers('hurt_' + c, { start: 0, end: 4 }), frameRate: 10, repeat: 0 });
-        this.anims.create({key: 'magic1_' + c,frames: this.anims.generateFrameNumbers('magic1_' + c, { start: 0, end: 11 }), frameRate: 14, repeat: 0 });    }
-
-        animacaoEmAndamento(anim, f) {
-    console.log(anim.key, f.index);
-
-    if (anim.key.includes('magic1') && f.index === 6) {
-        console.log("FRAME 6!");
-        this.atirarMagia();
+        this.anims.create({ key: 'magic1_' + c, frames: this.anims.generateFrameNumbers('magic1_' + c, { start: 0, end: 11 }), frameRate: 14, repeat: 0 });    
     }
-}
+
+    animacaoEmAndamento(anim, f) {
+        if (anim.key.includes('magic1') && f.index === 6) {
+            this.atirarMagia();
+        }
+    }
 
     atualizarFantasma(f, info) {
         f.setPosition(info.x, info.y); f.flipX = info.flipX;
@@ -350,17 +344,20 @@ class Level1 extends Phaser.Scene {
             if (!this.aMudarDeCena) this.toggleInventario();
         }
 
-        let orinBloqueado = (this.player.isDead || this.player.isCasting || this.player.isHurt || this.isInventarioAberto || this.aMudarDeCena);
+        // ===============================================
+        // A LÓGICA DE BLOQUEIO FICA AQUI DENTRO DO UPDATE
+        // ===============================================
+        let menuPausaAberto = this.scene.isActive('PauseMenu');
+        let orinBloqueado = (this.player.isDead || this.player.isCasting || this.player.isHurt || this.isInventarioAberto || this.aMudarDeCena || menuPausaAberto);
 
-        if (this.isInventarioAberto && !this.player.isDead && this.player.body.touching.down) {
+        if (orinBloqueado && !this.player.isDead && this.player.body.touching.down && this.player.body.velocity.x !== 0) {
             this.player.setVelocityX(0);
             if (this.player.estadoAtual !== 'idle') this.player.mudarAnimacao('idle');
         }
 
-        // CHAMA A LÓGICA TODA DO BONECO
+        // O MAIS IMPORTANTE: A LINHA QUE APAGASTE VOLTOU! É ELA QUE FAZ O BONECO ANDAR!
         this.player.updatePlayer(time, orinBloqueado);
-        
+
         if (Phaser.Input.Keyboard.JustDown(this.keyH)) { this.player.receberDano(); }
     }
 }
-
