@@ -40,7 +40,7 @@ class MenuScene extends Phaser.Scene {
         this.peliculaInicio.setInteractive();
 
         this.textoInicio = this.add.text(w / 2, h / 2, 'Clica para entrar nas Trevas...', {
-            fontFamily: retroFont,
+            fontFamily: 'retroFont',
             fontSize: '48px',
             fill: '#ffffff'
         });
@@ -121,6 +121,38 @@ class MenuScene extends Phaser.Scene {
                 this.eventoMonstros.delay = Phaser.Math.Between(6000, 16000);
             }
         });
+
+        // ==========================================
+// SISTEMA DE MENSAGENS DE ERRO (MULTIPLAYER)
+// ==========================================
+if (this.mensagemErro) {
+    let w = this.cameras.main.width;
+    
+    // Cria o texto do erro no topo do ecrã
+    let txtErro = this.add.text(w / 2, 80, this.mensagemErro, { 
+        fontFamily: 'Arial', 
+        fontSize: '22px', 
+        fill: '#ff4444', 
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        padding: { x: 15, y: 15 },
+        align: 'center',
+        border: '1px solid #ff0000'
+    }).setOrigin(0.5).setDepth(100);
+
+    // Faz a mensagem desaparecer passados 5 segundos (5000 ms)
+    this.time.delayedCall(5000, () => {
+        // Cria uma animação suave para o texto ir ficando transparente (alpha 0)
+        this.tweens.add({
+            targets: txtErro,
+            alpha: 0,
+            duration: 1000, // Demora 1 segundo a desvanecer
+            onComplete: () => {
+                txtErro.destroy(); // Apaga o texto da memória do jogo
+                this.mensagemErro = null; // Limpa a variável
+            }
+        });
+    });
+}
     }
 
     iniciarAudioMenu() {
@@ -152,7 +184,19 @@ class MenuScene extends Phaser.Scene {
             targets: alvosFade,
             alpha: 1,
             duration: 1200,
-            ease: 'Linear'
+            ease: 'Linear',
+            onComplete: () => {
+               // 🔥 A MAGIA HTML ACONTECE AQUI, QUANDO O MENU JÁ ESTÁ VISÍVEL!
+                if (!localStorage.getItem('orin_nickname')) {
+                    // Se não tem nome, abre a caixa do nome
+                    document.getElementById('name-input-container').style.display = 'block';
+                } else {
+                    // Se já tem nome, verifica se há um novo changelog para mostrar!
+                    if (typeof window.verificarChangelogAuto === 'function') {
+                        window.verificarChangelogAuto();
+                    }
+                }
+            }
         });
 
         logoTitle.play('play_titulo');
@@ -193,12 +237,8 @@ class MenuScene extends Phaser.Scene {
     }
 
     prepararRestoDoMenu(w, h) {
-        this.nomeJogador = localStorage.getItem('orin_nickname');
-        // 🔥 CORREÇÃO PARA O ELECTRON: O window.prompt não funciona em aplicações Desktop
-        if (!this.nomeJogador) {
-            this.nomeJogador = "Orin_" + Math.floor(Math.random() * 999);
-            localStorage.setItem('orin_nickname', this.nomeJogador);
-        }
+this.nomeJogador = localStorage.getItem('orin_nickname') || "Desconhecido";
+   
 
         if (this.mensagemErro) {
             let caixaErro = this.add.rectangle(w / 2, h / 2 - 120, 800, 100, 0xff0000, 0.7).setOrigin(0.5).setStrokeStyle(2, 0xffffff);
@@ -316,20 +356,41 @@ class MenuScene extends Phaser.Scene {
             btnExit.once('animationcomplete', () => {
                 if (this.sound.get('musica_menu')) this.sound.get('musica_menu').stop();
                 if (this.sound.get('som_noite')) this.sound.get('som_noite').stop();
-                localStorage.removeItem('orin_nickname');
-                location.reload();
+                window.close();
             });
         });
 
-        // ==========================================================================
+// Criar um texto clicável no menu
+let btnChangelog = this.add.text(20, 20, 'Ver Changelog', { 
+    fontFamily: 'Arial', 
+    fontSize: '18px', 
+    color: '#ffffff' 
+}).setInteractive({ useHandCursor: true });
+
+// Quando o jogador clica, chama a função do HTML!
+btnChangelog.on('pointerdown', () => {
+    window.abrirChangelog();
+});
+
+
+
+       // ==========================================================================
         // 📜 MARCA DE ÁGUA DO VIAJANTE
         // ==========================================================================
-        let textoViajante = this.add.text(w - 50, h - 50, `Viajante: ${this.nomeJogador}`, {
+        this.textoViajante = this.add.text(w - 50, h - 50, `Viajante: ${this.nomeJogador}`, {
             fontFamily: retroFont,
             fontSize: '24px',
             fill: '#aaaaaa'
         });
-        textoViajante.setOrigin(1, 0.5).setAlpha(0); 
-        this.elementosMenu.push(textoViajante);
+        this.textoViajante.setOrigin(1, 0.5).setAlpha(0); 
+        this.elementosMenu.push(this.textoViajante);
+
+        // A PONTE DE COMUNICAÇÃO: O HTML chama isto para atualizar o jogo ao vivo!
+        window.atualizarNomeMenu = (novoNome) => {
+            this.nomeJogador = novoNome; // Atualiza a variável que vai para o Multiplayer
+            if (this.textoViajante) {
+                this.textoViajante.setText(`Viajante: ${novoNome}`);
+            }
+        };
     }
 }

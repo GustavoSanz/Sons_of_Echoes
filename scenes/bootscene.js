@@ -23,7 +23,7 @@ class LoadingScene extends Phaser.Scene {
         
         // 🔥 TEXTO GRANDE E BARRA RESTAURADA
         let loadingText = this.add.text(w / 2, h / 2 - 80, 'A Carregar as Trevas...', { 
-            fontFamily: retroFont, 
+            fontFamily: 'retroFont', 
             fontSize: '42px', 
             fill: '#ffffff' 
         }).setOrigin(0.5);

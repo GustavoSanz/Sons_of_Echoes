@@ -11,6 +11,17 @@ class Level1 extends Phaser.Scene {
     }
 
     create() {
+        this.socket.on('disconnect', () => {
+    console.log('A ligação caiu a meio do jogo!');
+    
+    // Pára tudo e atira o jogador de volta para o menu com um aviso!
+    this.socket.disconnect();
+    this.scene.stop();
+    this.scene.start('MenuScene', { erro: '[ERR-404]\nFoste desconectado do servidor a meio da partida!' });
+});
+
+
+
         this.isMultiplayer = (this.modoJogo === 'multiplayer' || this.isSpectatorMode);
         this.outrosJogadores = this.add.group();
         this.minhaCor = 'Original';
