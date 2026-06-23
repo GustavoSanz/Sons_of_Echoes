@@ -1,4 +1,4 @@
-const VERSAO_JOGO = "v1.0.3";
+const VERSAO_JOGO = "1.0.3";
 
 // 1. Exporta para o Navegador (Phaser)
 if (typeof window !== 'undefined') {
