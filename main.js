@@ -22,6 +22,8 @@ function createWindow () {
 app.whenReady().then(() => {
     createWindow();
     
+    autoUpdater.token = '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';
+
     // O Electron começa a procurar atualizações silenciosamente
     autoUpdater.checkForUpdatesAndNotify();
 
