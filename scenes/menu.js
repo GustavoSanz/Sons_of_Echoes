@@ -65,6 +65,39 @@ class MenuScene extends Phaser.Scene {
             });
         }
 
+if (!isBrowser) {
+            // =====================================================
+            // 🚀 MODO DESKTOP FORÇADO (ELECTRON) - ESTILO GENSHIN
+            // =====================================================
+            const { ipcRenderer } = window.require('electron');
+
+            // 1. Ouvimos a percentagem a chegar do auto-updater
+            ipcRenderer.on('atualiza-barra-phaser', (event, progressObj) => {
+                
+                // Se a barra visual ainda não existir no ecrã, criamo-la!
+                if (!this.barraVerdeElectron) {
+                    this.prepararEcraAtualizacaoVisual(w, h, "Nova Versão"); // Chama aquela tua função visual
+                }
+
+                // Atualizamos a largura da barra e as partículas
+                this.atualizarBarraElectron(w, h, progressObj);
+            });
+
+            // 2. Quando chegar aos 100%, o Phaser toma o controlo e avisa o jogador
+            ipcRenderer.on('atualizacao-concluida', () => {
+                this.textoUpdateTitulo.setText('[ REINICIANDO NAS TREVAS... ]');
+                this.textoUpdateDetalhe.setText('A aplicar a magia de forma invisível...');
+                
+                // Espera 2 segundos para o jogador apreciar a barra a 100% e manda o Electron reiniciar
+                this.time.delayedCall(2000, () => {
+                    ipcRenderer.send('reiniciar-e-instalar'); // <-- Vais ter de criar este 'on' no main.js!
+                });
+            });
+        }
+
+
+
+
         this.eventoMonstros = this.time.addEvent({
             delay: 5000, loop: true, callback: () => {
                 let som = Phaser.Utils.Array.GetRandom(['grunhido1', 'grunhido2']);
