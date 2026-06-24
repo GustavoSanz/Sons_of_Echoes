@@ -4,56 +4,86 @@ class MenuScene extends Phaser.Scene {
     }
 
     init(data) {
-       this.mensagemErro = data.mensagemErro || data.erro || null;
+        this.mensagemErro = data.mensagemErro || data.erro || null;
     }
     
     create() {
+        let w = this.cameras.main.width;
+        let h = this.cameras.main.height;
 
-        fetch('https://raw.githubusercontent.com/GustavoSanz/Sons_of_Echoes/main/versao.json')
-        .then(resposta => resposta.json())
+        // 1. Escudo de proteção e verificação de atualizações no GitHub
+        fetch('https://raw.githubusercontent.com/GustavoSanz/Sons_of_Echoes/refs/heads/main/versao.json')
+        .then(resposta => {
+            if (!resposta.ok) throw new Error(`Erro de rede: ${resposta.status}`);
+            return resposta.json();
+        })
         .then(dados => {
-            
-            // 2. Compara a versão do GitHub com a versão do teu config.js
+            // Compara a versão do GitHub com a versão local
             if (dados.versao_oficial !== window.VERSAO_JOGO) {
                 
-                // 3. SE FOR DIFERENTE, TRANCA TUDO!
-                let w = this.cameras.main.width;
-                let h = this.cameras.main.height;
+                // Tranca todas as interações de fundo com película opaca
+                let fundoAviso = this.add.rectangle(w/2, h/2, w, h, 0x000000, 0.95).setDepth(9998).setInteractive();
                 
-                // Põe um ecrã preto por cima de todo o menu
-                this.add.rectangle(w/2, h/2, w, h, 0x000000, 0.95).setDepth(9998).setInteractive();
-                
-                // O Aviso de Atualização Gigante
-                this.add.text(w/2, h/2 - 50, '[ ATUALIZAÇÃO DISPONÍVEL ]\n\nUma nova versão do Sons of Echoes está à tua espera!', {
+                let titulo = this.add.text(w/2, h/2 - 120, '[ ATUALIZAÇÃO DISPONÍVEL ]\n\nUma nova versão do Sons of Echoes está pronta!', {
                     fontFamily: 'retroFont',
                     fontSize: '40px',
-                    fill: '#00ffff', // Ciano para chamar a atenção
+                    fill: '#00ffff',
                     align: 'center'
                 }).setOrigin(0.5).setDepth(9999);
 
-                this.add.text(w/2, h/2 + 80, `A tua versão: ${window.VERSAO_JOGO}\nVersão atual: ${dados.versao_oficial}`, {
+                let textoVersao = this.add.text(w/2, h/2 - 10, `A tua versão: ${window.VERSAO_JOGO}\nVersão atual: ${dados.versao_oficial}`, {
                     fontFamily: 'retroFont',
                     fontSize: '30px',
                     fill: '#ff4444',
                     align: 'center'
                 }).setOrigin(0.5).setDepth(9999);
                 
-                this.add.text(w/2, h/2 + 180, '> Por favor, descarrega a versão mais recente no GitHub. <', {
+                // Botão Interativo: Descarregar na própria App
+                let btnBaixar = this.add.text(w/2 - 160, h/2 + 120, '> DESCARREGAR <', {
                     fontFamily: 'retroFont',
-                    fontSize: '25px',
+                    fontSize: '30px',
+                    fill: '#00ff00'
+                }).setOrigin(0.5).setDepth(9999).setInteractive({ useHandCursor: true });
+
+                // Botão Interativo: Ignorar aviso (Permite jogar Singleplayer offline)
+                let btnIgnorar = this.add.text(w/2 + 160, h/2 + 120, '> IGNORAR <', {
+                    fontFamily: 'retroFont',
+                    fontSize: '30px',
                     fill: '#aaaaaa'
-                }).setOrigin(0.5).setDepth(9999);
+                }).setOrigin(0.5).setDepth(9999).setInteractive({ useHandCursor: true });
+
+                // Efeitos visuais de Hover nos botões
+                btnBaixar.on('pointerover', () => btnBaixar.setFill('#ffffff'));
+                btnBaixar.on('pointerout', () => btnBaixar.setFill('#00ff00'));
+                btnIgnorar.on('pointerover', () => btnIgnorar.setFill('#ff0000'));
+                btnIgnorar.on('pointerout', () => btnIgnorar.setFill('#aaaaaa'));
+
+                // Ação de Ignorar: Destrói o ecrã de bloqueio
+                btnIgnorar.on('pointerdown', () => {
+                    fundoAviso.destroy();
+                    titulo.destroy();
+                    textoVersao.destroy();
+                    btnBaixar.destroy();
+                    btnIgnorar.destroy();
+                });
+
+                // Ação de Download: Remove botões e inicia a barra interna
+                btnBaixar.on('pointerdown', () => {
+                    btnBaixar.destroy();
+                    btnIgnorar.destroy();
+                    textoVersao.destroy();
+                    
+                    // Substitui a string abaixo caso queiras apontar para um arquivo específico de release (.zip/.exe)
+                    let urlAsset = `https://github.com/GustavoSanz/Sons_of_Echoes/releases/download/v${dados.versao_oficial}/Sons_of_Echoes.zip`;
+                    this.iniciarFluxoDownload(urlAsset, titulo);
+                });
             }
         })
         .catch(erro => {
-            console.log('Modo Offline: Não foi possível verificar se há atualizações.', erro);
+            console.log('Modo Offline: Não foi possível verificar as atualizações.', erro);
         });
 
-
-        let w = this.cameras.main.width;
-        let h = this.cameras.main.height;
-        
-        // Fundo animado
+        // Fundo animado original
         this.anims.create({
             key: 'menu_idle',
             frames: this.anims.generateFrameNumbers('menu_bg_anim', { start: 0, end: 13 }),
@@ -73,34 +103,24 @@ class MenuScene extends Phaser.Scene {
 
         this.elementosMenu = [];
 
-        // ==========================================
-        // 🛡️ CAMADA DE INTERAÇÃO DO BROWSER
-        // ==========================================
+        // Camada de interação inicial
         if (this.mensagemErro) {
-            // Se vier de um erro, já houve clique! Vamos direto para o Menu sem vídeo.
             this.prepararRestoDoMenu(w, h);
             this.dispararFadeDoTitulo();
             this.iniciarAudioMenu();
         } else {
-            // Se for a primeira vez que abre o jogo, mostra as Trevas
-            this.peliculaInicio = this.add.rectangle(w / 2, h / 2, w, h, 0x000000, 1.0);
-            this.peliculaInicio.setOrigin(0.5);
-            this.peliculaInicio.setDepth(2000);
-            this.peliculaInicio.setInteractive();
+            this.peliculaInicio = this.add.rectangle(w / 2, h / 2, w, h, 0x000000, 1.0).setOrigin(0.5).setDepth(2000).setInteractive();
 
             this.textoInicio = this.add.text(w / 2, h / 2, 'Clica para entrar nas Trevas...', {
                 fontFamily: 'retroFont',
                 fontSize: '48px',
                 fill: '#ffffff'
-            });
-            this.textoInicio.setOrigin(0.5);
-            this.textoInicio.setDepth(2001);
+            }).setOrigin(0.5).setDepth(2001);
 
             this.prepararRestoDoMenu(w, h);
 
-            // 🎬 LÓGICA NOVA: Clicar despoleta o Vídeo da Frase, e só depois o Menu!
             this.peliculaInicio.on('pointerdown', () => {
-                this.peliculaInicio.disableInteractive(); // Impede duplo clique
+                this.peliculaInicio.disableInteractive();
 
                 this.tweens.add({
                     targets: this.textoInicio,
@@ -108,17 +128,11 @@ class MenuScene extends Phaser.Scene {
                     duration: 400,
                     onComplete: () => {
                         this.textoInicio.destroy();
-                        
-                        // Arranca o vídeo da Frase
                         let videoIntro = this.add.video(w / 2, h / 2, 'intro_video').setOrigin(0.5).setDepth(2500);
                         
-                        videoIntro.on('playing', () => {
-                            videoIntro.setDisplaySize(w, h);
-                        });
-
+                        videoIntro.on('playing', () => { videoIntro.setDisplaySize(w, h); });
                         videoIntro.play();
 
-                        // Permite ao jogador saltar a intro com um clique no ecrã
                         let podeSaltar = true;
                         this.input.once('pointerdown', () => {
                             if (podeSaltar && videoIntro && videoIntro.isPlaying()) {
@@ -127,7 +141,6 @@ class MenuScene extends Phaser.Scene {
                             }
                         });
 
-                        // Quando o vídeo acabar, destrói a película e revela o Menu
                         videoIntro.once('complete', () => {
                             podeSaltar = false;
                             videoIntro.destroy();
@@ -136,9 +149,7 @@ class MenuScene extends Phaser.Scene {
                                 targets: this.peliculaInicio,
                                 alpha: 0,
                                 duration: 800,
-                                onComplete: () => {
-                                    this.peliculaInicio.destroy();
-                                }
+                                onComplete: () => { this.peliculaInicio.destroy(); }
                             });
 
                             this.iniciarAudioMenu();
@@ -148,9 +159,8 @@ class MenuScene extends Phaser.Scene {
                 });
             });
         }
-        // ==========================================
-        // 🦇 SISTEMA DE SOM ALEATÓRIO E GERIDO
-        // ==========================================
+
+        // Sistema de som aleatório de monstros
         this.eventoMonstros = this.time.addEvent({
             delay: 5000,
             loop: true,
@@ -168,8 +178,106 @@ class MenuScene extends Phaser.Scene {
                 this.eventoMonstros.delay = Phaser.Math.Between(6000, 16000);
             }
         });
+    }
 
+    // Método Interno Avançado de Download Baseado em Fluxo de Chunks
+    iniciarFluxoDownload(url, textoTitulo) {
+        let w = this.cameras.main.width;
+        let h = this.cameras.main.height;
 
+        textoTitulo.setText('[ DESCARREGANDO JOGO... ]');
+
+        // Criação gráfica do invólucro e da barra de preenchimento
+        let barraFundo = this.add.rectangle(w / 2, h / 2 + 20, 600, 40, 0x222222).setOrigin(0.5).setDepth(9999);
+        let barraProgresso = this.add.rectangle(w / 2 - 300, h / 2 + 20, 0, 40, 0x00ff00).setOrigin(0, 0.5).setDepth(9999);
+        
+        let textoPercentagem = this.add.text(w / 2, h / 2 + 80, 'A preparar ligação... (0%)', {
+            fontFamily: 'retroFont',
+            fontSize: '24px',
+            fill: '#ffffff'
+        }).setOrigin(0.5).setDepth(9999);
+
+        // Execução da pipeline HTTP assíncrona
+        fetch(url)
+        .then(resposta => {
+            if (!resposta.ok) throw new Error(`HTTP Erro! Código: ${resposta.status}`);
+            
+            // Extração do tamanho do arquivo vindo do Header do Servidor
+            const totalBytes = parseInt(resposta.headers.get('content-length'), 10);
+            if (isNaN(totalBytes)) {
+                textoPercentagem.setText('A descarregar (Tamanho indefinido)...');
+            }
+
+            const leitor = resposta.body.getReader();
+            let bytesRecebidos = 0;
+            let pedaçosDeMemoria = [];
+
+            // Função recursiva para ler buffers sequenciais
+            const lerPedaco = () => {
+                return leitor.read().then(({ done, value }) => {
+                    if (done) {
+                        return new Blob(pedaçosDeMemoria);
+                    }
+
+                    bytesRecebidos += value.length;
+                    pedaçosDeMemoria.push(value);
+
+                    // Atualização em tempo real das métricas da UI
+                    if (totalBytes) {
+                        let progressoRatio = bytesRecebidos / totalBytes;
+                        let percentagem = Math.round(progressoRatio * 100);
+                        
+                        // Atualiza a largura da barra nativa do Phaser
+                        barraProgresso.width = 600 * progressoRatio;
+                        
+                        let mbRecebidos = (bytesRecebidos / (1024 * 1024)).toFixed(1);
+                        let mbTotais = (totalBytes / (1024 * 1024)).toFixed(1);
+                        textoPercentagem.setText(`${mbRecebidos}MB / ${mbTotais}MB (${percentagem}%)`);
+                    } else {
+                        let mbRecebidos = (bytesRecebidos / (1024 * 1024)).toFixed(1);
+                        textoPercentagem.setText(`${mbRecebidos}MB descarregados...`);
+                    }
+
+                    return lerPedaco();
+                });
+            };
+
+            return lerPedaco();
+        })
+        .then(blobFinal => {
+            // Sucesso total da operação: Limpa os loaders
+            barraFundo.destroy();
+            barraProgresso.destroy();
+            textoPercentagem.destroy();
+            
+            textoTitulo.setText('[ DOWNLOAD CONCLUÍDO! ]');
+            
+            let textoSucesso = this.add.text(w / 2, h / 2 + 40, 'O ficheiro foi guardado.\nPor favor, substitui o teu executável antigo.', {
+                fontFamily: 'retroFont',
+                fontSize: '25px',
+                fill: '#00ff00',
+                align: 'center'
+            }).setOrigin(0.5).setDepth(9999);
+
+            // Transforma o Blob na memória numa hiperligação invisível e simula o clique do utilizador
+            let urlLocal = window.URL.createObjectURL(blobFinal);
+            let ancoraDownload = document.createElement('a');
+            ancoraDownload.href = urlLocal;
+            ancoraDownload.download = "Sons_of_Echoes_v1.0.3.zip";
+            document.body.appendChild(ancoraDownload);
+            ancoraDownload.click();
+            
+            // Desaloca referências para prevenir Memory Leaks no HP Victus
+            document.body.removeChild(ancoraDownload);
+            window.URL.revokeObjectURL(urlLocal);
+        })
+        .catch(erro => {
+            console.error('Falha na transferência direta:', erro);
+            textoPercentagem.setText('Erro ao descarregar! A reencaminhar fallback...');
+            this.time.delayedCall(2000, () => {
+                window.open('https://github.com/GustavoSanz/Sons_of_Echoes/releases/latest', '_blank');
+            });
+        });
     }
 
     iniciarAudioMenu() {
@@ -190,10 +298,7 @@ class MenuScene extends Phaser.Scene {
 
     dispararFadeDoTitulo() {
         let logoTitle = this.add.sprite(480, 220, 'titulo_animado');
-        logoTitle.setOrigin(0.5);
-        logoTitle.setDepth(10);
-        logoTitle.setScale(1.8);
-        logoTitle.setAlpha(0);
+        logoTitle.setOrigin(0.5).setDepth(10).setScale(1.8).setAlpha(0);
 
         let alvosFade = [logoTitle, ...this.elementosMenu];
 
@@ -201,14 +306,10 @@ class MenuScene extends Phaser.Scene {
             targets: alvosFade,
             alpha: 1,
             duration: 1200,
-            ease: 'Linear',
             onComplete: () => {
-               // 🔥 A MAGIA HTML ACONTECE AQUI, QUANDO O MENU JÁ ESTÁ VISÍVEL!
                 if (!localStorage.getItem('orin_nickname')) {
-                    // Se não tem nome, abre a caixa do nome
                     document.getElementById('name-input-container').style.display = 'block';
                 } else {
-                    // Se já tem nome, verifica se há um novo changelog para mostrar!
                     if (typeof window.verificarChangelogAuto === 'function') {
                         window.verificarChangelogAuto();
                     }
@@ -219,7 +320,6 @@ class MenuScene extends Phaser.Scene {
         logoTitle.play('play_titulo');
     }
 
-    // 🎬 LÓGICA DE TRANSIÇÃO ORIGINAL E LIMPA
     iniciarTransitionJogo(cenaDestino, dadosPassados) {
         if (this.eventoMonstros) this.eventoMonstros.remove(); 
         this.sound.stopByKey('grunhido1'); 
@@ -254,24 +354,14 @@ class MenuScene extends Phaser.Scene {
     }
 
     prepararRestoDoMenu(w, h) {
-this.nomeJogador = localStorage.getItem('orin_nickname') || "Desconhecido";
-   
+        this.nomeJogador = localStorage.getItem('orin_nickname') || "Desconhecido";
 
-   // ==========================================================================
-        // SISTEMA DE MENSAGENS DE ERRO (CAIXA VERMELHA CENTRAL)
-        // ==========================================================================
         if (this.mensagemErro) {
-            let w = this.cameras.main.width;
-            let h = this.cameras.main.height;
-
-            // 🔊 TOCA O SOM DO ERRO AQUI!
             this.sound.play('som_erro', { volume: 0.6 }); 
 
-            // Cria o fundo vermelho com borda branca
             let caixaErro = this.add.rectangle(w / 2, h / 2 - 20, 500, 80, 0xcc0000).setOrigin(0.5).setDepth(100);
             caixaErro.setStrokeStyle(2, 0xffffff); 
 
-            // Cria o texto do erro centrado
             let txtErro = this.add.text(w / 2, h / 2 - 20, this.mensagemErro, {
                 fontFamily: retroFont,
                 fontSize: '26px',
@@ -279,7 +369,6 @@ this.nomeJogador = localStorage.getItem('orin_nickname') || "Desconhecido";
                 align: 'center'
             }).setOrigin(0.5).setDepth(101);
 
-            // Faz a mensagem desaparecer passados 5 segundos
             this.time.delayedCall(5000, () => {
                 this.tweens.add({
                     targets: [caixaErro, txtErro],
@@ -294,105 +383,77 @@ this.nomeJogador = localStorage.getItem('orin_nickname') || "Desconhecido";
             });
         }
 
-        // ==========================================================================
-        // 🔘 BOTÃO 1: "NEW GAME" (Y: 430)
-        // ==========================================================================
+        // Configurações Globais de Animações e Botões de Ação do Menu (New Game, Continue, Multiplayer, etc.)
         this.anims.create({ key: 'hover_new_game', frames: this.anims.generateFrameNumbers('btn_new_game', { start: 0, end: 10 }), frameRate: 15, repeat: -1 });
         this.anims.create({ key: 'click_new_game', frames: this.anims.generateFrameNumbers('btn_new_game_click', { start: 0, end: 10 }), frameRate: 15, repeat: 0 });
 
-        let btnNewGame = this.add.sprite(480, 430, 'btn_new_game');
-        btnNewGame.setOrigin(0.5, 0).setInteractive({ useHandCursor: true }).setDepth(15).setScale(2.0).setAlpha(0); 
+        let btnNewGame = this.add.sprite(480, 430, 'btn_new_game').setOrigin(0.5, 0).setInteractive({ useHandCursor: true }).setDepth(15).setScale(2.0).setAlpha(0); 
         this.elementosMenu.push(btnNewGame);
         
         btnNewGame.on('pointerover', () => { if (btnNewGame.texture.key === 'btn_new_game') btnNewGame.play('hover_new_game'); });
         btnNewGame.on('pointerout', () => { if (btnNewGame.texture.key === 'btn_new_game') { btnNewGame.anims.stop(); btnNewGame.setFrame(0); } });
         btnNewGame.on('pointerdown', () => {
             if (btnNewGame.texture.key === 'btn_new_game_click') return;
-            btnNewGame.setTexture('btn_new_game_click');
-            btnNewGame.play('click_new_game');
-            
-            this.iniciarTransitionJogo('SceneAndar', { modo: 'singleplayer', nome: this.nomeJogador }, true);
+            btnNewGame.setTexture('btn_new_game_click').play('click_new_game');
+            this.iniciarTransitionJogo('SceneAndar', { modo: 'singleplayer', nome: this.nomeJogador });
         });
 
-        // ==========================================================================
-        // 🔘 BOTÃO 2: "CONTINUE" (Y: 510)
-        // ==========================================================================
         this.anims.create({ key: 'hover_continue', frames: this.anims.generateFrameNumbers('btn_continue', { start: 0, end: 11 }), frameRate: 15, repeat: -1 });
         this.anims.create({ key: 'click_continue', frames: this.anims.generateFrameNumbers('btn_continue_click', { start: 0, end: 11 }), frameRate: 15, repeat: 0 });
 
-        let btnContinue = this.add.sprite(480, 510, 'btn_continue');
-        btnContinue.setOrigin(0.5, 0).setInteractive({ useHandCursor: true }).setDepth(15).setScale(2.0).setAlpha(0);
+        let btnContinue = this.add.sprite(480, 510, 'btn_continue').setOrigin(0.5, 0).setInteractive({ useHandCursor: true }).setDepth(15).setScale(2.0).setAlpha(0);
         this.elementosMenu.push(btnContinue);
         
         btnContinue.on('pointerover', () => { if (btnContinue.texture.key === 'btn_continue') btnContinue.play('hover_continue'); });
         btnContinue.on('pointerout', () => { if (btnContinue.texture.key === 'btn_continue') { btnContinue.anims.stop(); btnContinue.setFrame(0); } });
         btnContinue.on('pointerdown', () => {
             if (btnContinue.texture.key === 'btn_continue_click') return;
-            btnContinue.setTexture('btn_continue_click');
-            btnContinue.play('click_continue');
-            this.iniciarTransitionJogo('L1', { modo: 'singleplayer', nome: this.nomeJogador }, false);
+            btnContinue.setTexture('btn_continue_click').play('click_continue');
+            this.iniciarTransitionJogo('L1', { modo: 'singleplayer', nome: this.nomeJogador });
         });
 
-        // ==========================================================================
-        // 🔘 BOTÃO 3: "MULTIPLAYER" (Y: 590)
-        // ==========================================================================
         this.anims.create({ key: 'hover_multiplayer', frames: this.anims.generateFrameNumbers('btn_multiplayer', { start: 0, end: 11 }), frameRate: 15, repeat: -1 });
         this.anims.create({ key: 'click_multiplayer', frames: this.anims.generateFrameNumbers('btn_multiplayer_click', { start: 0, end: 11 }), frameRate: 15, repeat: 0 });
 
-        let btnMultiplayer = this.add.sprite(480, 590, 'btn_multiplayer');
-        btnMultiplayer.setOrigin(0.5, 0).setInteractive({ useHandCursor: true }).setDepth(15).setScale(2.0).setAlpha(0);
+        let btnMultiplayer = this.add.sprite(480, 590, 'btn_multiplayer').setOrigin(0.5, 0).setInteractive({ useHandCursor: true }).setDepth(15).setScale(2.0).setAlpha(0);
         this.elementosMenu.push(btnMultiplayer);
         
         btnMultiplayer.on('pointerover', () => { if (btnMultiplayer.texture.key === 'btn_multiplayer') btnMultiplayer.play('hover_multiplayer'); });
         btnMultiplayer.on('pointerout', () => { if (btnMultiplayer.texture.key === 'btn_multiplayer') { btnMultiplayer.anims.stop(); btnMultiplayer.setFrame(0); } });
         btnMultiplayer.on('pointerdown', () => {
             if (btnMultiplayer.texture.key === 'btn_multiplayer_click') return;
-            btnMultiplayer.setTexture('btn_multiplayer_click');
-            btnMultiplayer.play('click_multiplayer');
-            this.iniciarTransitionJogo('ConnectionScene', { isSpectatorMode: false, nome: this.nomeJogador }, false);
+            btnMultiplayer.setTexture('btn_multiplayer_click').play('click_multiplayer');
+            this.iniciarTransitionJogo('ConnectionScene', { isSpectatorMode: false, nome: this.nomeJogador });
         });
 
-        // ==========================================================================
-        // 🔘 BOTÃO 4: "OPTIONS" (Y: 670)
-        // ==========================================================================
         this.anims.create({ key: 'hover_options', frames: this.anims.generateFrameNumbers('btn_options', { start: 0, end: 11 }), frameRate: 15, repeat: -1 });
         this.anims.create({ key: 'click_options', frames: this.anims.generateFrameNumbers('btn_options_click', { start: 0, end: 11 }), frameRate: 15, repeat: 0 });
 
-        let btnOptions = this.add.sprite(480, 670, 'btn_options');
-        btnOptions.setOrigin(0.5, 0).setInteractive({ useHandCursor: true }).setDepth(15).setScale(2.0).setAlpha(0);
+        let btnOptions = this.add.sprite(480, 670, 'btn_options').setOrigin(0.5, 0).setInteractive({ useHandCursor: true }).setDepth(15).setScale(2.0).setAlpha(0);
         this.elementosMenu.push(btnOptions);
         
         btnOptions.on('pointerover', () => { if (btnOptions.texture.key === 'btn_options') btnOptions.play('hover_options'); });
         btnOptions.on('pointerout', () => { if (btnOptions.texture.key === 'btn_options') { btnOptions.anims.stop(); btnOptions.setFrame(0); } });
         btnOptions.on('pointerdown', () => {
             if (btnOptions.texture.key === 'btn_options_click') return;
-            btnOptions.setTexture('btn_options_click');
-            btnOptions.play('click_options');
-            
+            btnOptions.setTexture('btn_options_click').play('click_options');
             btnOptions.once('animationcomplete', () => {
                 window.alert("Controlos padrão: Setas para mover, Shift para correr, J para Orbe.");
-                btnOptions.setTexture('btn_options');
-                btnOptions.setFrame(0);
+                btnOptions.setTexture('btn_options').setFrame(0);
             });
         });
 
-        // ==========================================================================
-        // 🔘 BOTÃO 5: "EXIT" (Y: 750)
-        // ==========================================================================
         this.anims.create({ key: 'hover_exit', frames: this.anims.generateFrameNumbers('btn_exit', { start: 0, end: 11 }), frameRate: 15, repeat: -1 });
         this.anims.create({ key: 'click_exit', frames: this.anims.generateFrameNumbers('btn_exit_click', { start: 0, end: 11 }), frameRate: 15, repeat: 0 });
 
-        let btnExit = this.add.sprite(480, 750, 'btn_exit');
-        btnExit.setOrigin(0.5, 0).setInteractive({ useHandCursor: true }).setDepth(15).setScale(2.0).setAlpha(0);
+        let btnExit = this.add.sprite(480, 750, 'btn_exit').setOrigin(0.5, 0).setInteractive({ useHandCursor: true }).setDepth(15).setScale(2.0).setAlpha(0);
         this.elementosMenu.push(btnExit);
         
         btnExit.on('pointerover', () => { if (btnExit.texture.key === 'btn_exit') btnExit.play('hover_exit'); });
         btnExit.on('pointerout', () => { if (btnExit.texture.key === 'btn_exit') { btnExit.anims.stop(); btnExit.setFrame(0); } });
         btnExit.on('pointerdown', () => {
             if (btnExit.texture.key === 'btn_exit_click') return;
-            btnExit.setTexture('btn_exit_click');
-            btnExit.play('click_exit');
-            
+            btnExit.setTexture('btn_exit_click').play('click_exit');
             btnExit.once('animationcomplete', () => {
                 if (this.sound.get('musica_menu')) this.sound.get('musica_menu').stop();
                 if (this.sound.get('som_noite')) this.sound.get('som_noite').stop();
@@ -400,46 +461,29 @@ this.nomeJogador = localStorage.getItem('orin_nickname') || "Desconhecido";
             });
         });
 
-// Criar um texto clicável no menu
-let btnChangelog = this.add.text(20, 20, 'Ver Changelog', { 
-    fontFamily: 'Arial', 
-    fontSize: '18px', 
-    color: '#ffffff' 
-}).setInteractive({ useHandCursor: true });
+        let btnChangelog = this.add.text(20, 20, 'Ver Changelog', { 
+            fontFamily: 'Arial', 
+            fontSize: '18px', 
+            color: '#ffffff' 
+        }).setInteractive({ useHandCursor: true });
+        btnChangelog.on('pointerdown', () => { window.abrirChangelog(); });
 
-// Quando o jogador clica, chama a função do HTML!
-btnChangelog.on('pointerdown', () => {
-    window.abrirChangelog();
-});
-
-
-
-       // ==========================================================================
-        // 📜 MARCA DE ÁGUA DO VIAJANTE (CLICÁVEL PARA MUDAR O NOME)
-        // ==========================================================================
         this.textoViajante = this.add.text(w - 50, h - 50, `Viajante: ${this.nomeJogador}`, {
             fontFamily: retroFont,
             fontSize: '24px',
             fill: '#aaaaaa'
-        });
-        this.textoViajante.setOrigin(1, 0.5).setAlpha(0); 
+        }).setOrigin(1, 0.5).setAlpha(0); 
         this.elementosMenu.push(this.textoViajante);
 
-        // Torna o texto num botão escondido
         this.textoViajante.setInteractive({ useHandCursor: true });
         this.textoViajante.on('pointerdown', () => {
             const container = document.getElementById('name-input-container');
-            if (container) {
-                container.style.display = 'block'; // Abre a caixa HTML novamente!
-            }
+            if (container) container.style.display = 'block';
         });
 
-        // A PONTE DE COMUNICAÇÃO (Mantém-se igual)
         window.atualizarNomeMenu = (novoNome) => {
             this.nomeJogador = novoNome;
-            if (this.textoViajante) {
-                this.textoViajante.setText(`Viajante: ${novoNome}`);
-            }
+            if (this.textoViajante) this.textoViajante.setText(`Viajante: ${novoNome}`);
         };
     }
 }
