@@ -67,17 +67,14 @@ class MenuScene extends Phaser.Scene {
                     btnIgnorar.destroy();
                 });
 
-                // Ação de Download: Remove botões e inicia a barra interna
+                // Ação de Download: Remove botões e inicia a transferência
                 btnBaixar.on('pointerdown', () => {
                     btnBaixar.destroy();
                     btnIgnorar.destroy();
                     textoVersao.destroy();
                     
-                    // 1. A URL verdadeira do teu GitHub
-                    let urlOriginal = `https://github.com/GustavoSanz/Sons_of_Echoes/releases/download/v${dados.versao_oficial}/Sons.of.Echoes.Setup.${dados.versao_oficial}.exe`;
-                    
-                    // 2. O Túnel Mágico que fura o bloqueio do CORS!
-                    let urlAsset = `https://corsproxy.io/?${encodeURIComponent(urlOriginal)}`;
+                    // URL direta do teu GitHub (Sem proxies!)
+                    let urlAsset = `https://github.com/GustavoSanz/Sons_of_Echoes/releases/download/v${dados.versao_oficial}/Sons.of.Echoes.Setup.${dados.versao_oficial}.exe`;
                     
                     this.iniciarFluxoDownload(urlAsset, titulo);
                 });
@@ -184,7 +181,9 @@ class MenuScene extends Phaser.Scene {
         });
     }
 
-    // Método Interno Avançado de Download Baseado em Fluxo de Chunks
+    // =========================================================================
+    // ⬇️ SISTEMA DE DOWNLOAD DIRETO E ANIMAÇÕES
+    // =========================================================================
     iniciarFluxoDownload(url, textoTitulo) {
         let w = this.cameras.main.width;
         let h = this.cameras.main.height;
@@ -195,7 +194,7 @@ class MenuScene extends Phaser.Scene {
         let barraFundo = this.add.rectangle(w / 2, h / 2 + 20, 600, 40, 0x222222).setOrigin(0.5).setDepth(9999);
         let barraProgresso = this.add.rectangle(w / 2 - 300, h / 2 + 20, 0, 40, 0x00ff00).setOrigin(0, 0.5).setDepth(9999);
         
-        let textoPercentagem = this.add.text(w / 2, h / 2 + 80, 'A preparar ligação... (0%)', {
+        let textoPercentagem = this.add.text(w / 2, h / 2 + 80, 'A preparar ligação...', {
             fontFamily: 'retroFont',
             fontSize: '24px',
             fill: '#ffffff'
@@ -206,7 +205,6 @@ class MenuScene extends Phaser.Scene {
         .then(resposta => {
             if (!resposta.ok) throw new Error(`HTTP Erro! Código: ${resposta.status}`);
             
-            // Extração do tamanho do arquivo vindo do Header do Servidor
             const totalBytes = parseInt(resposta.headers.get('content-length'), 10);
             if (isNaN(totalBytes)) {
                 textoPercentagem.setText('A descarregar (Tamanho indefinido)...');
@@ -226,22 +224,14 @@ class MenuScene extends Phaser.Scene {
                     bytesRecebidos += value.length;
                     pedaçosDeMemoria.push(value);
 
-                    // =========================================================
                     // ✨ ANIMAÇÃO DOS PACOTES DE DADOS (CHUNKS) ✨
-                    // =========================================================
-                    
-                    // 1. O pacote nasce numa posição aleatória um pouco acima da barra
                     let posX_inicial = Phaser.Math.Between(w / 2 - 300, w / 2 + 300);
                     let posY_inicial = h / 2 - 80 - Math.random() * 50; 
                     let corVisual = Phaser.Utils.Array.GetRandom([0x00ffff, 0x00ff00, 0xffffff]); 
                     
-                    // 2. Cria o "pixel" visual
                     let visualChunk = this.add.rectangle(posX_inicial, posY_inicial, 6, 6, corVisual).setDepth(10000);
-                    
-                    // 3. O destino do pacote é a "ponta verde" exata da barra naquele milissegundo
                     let destinoX = (w / 2 - 300) + barraProgresso.width;
 
-                    // 4. Tween: Voa até à barra, encolhe e desaparece como magia!
                     this.tweens.add({
                         targets: visualChunk,
                         x: destinoX,
@@ -253,14 +243,11 @@ class MenuScene extends Phaser.Scene {
                         onComplete: () => { visualChunk.destroy(); }
                     });
                     
-                    // =========================================================
-
                     // Atualização em tempo real das métricas da UI
                     if (totalBytes) {
                         let progressoRatio = bytesRecebidos / totalBytes;
                         let percentagem = Math.round(progressoRatio * 100);
                         
-                        // Atualiza a largura da barra nativa do Phaser
                         barraProgresso.width = 600 * progressoRatio;
                         
                         let mbRecebidos = (bytesRecebidos / (1024 * 1024)).toFixed(1);
@@ -278,37 +265,53 @@ class MenuScene extends Phaser.Scene {
             return lerPedaco();
         })
         .then(blobFinal => {
-            // Sucesso total da operação: Limpa os loaders
+            // Sucesso total da operação via Electron/Navegador sem bloqueio
             barraFundo.destroy();
             barraProgresso.destroy();
             textoPercentagem.destroy();
             
             textoTitulo.setText('[ DOWNLOAD CONCLUÍDO! ]');
             
-            let textoSucesso = this.add.text(w / 2, h / 2 + 40, 'O ficheiro foi guardado.\nPor favor, substitui o teu executável antigo.', {
+            let textoSucesso = this.add.text(w / 2, h / 2 + 40, 'O ficheiro foi guardado.\nPor favor, instala o novo executável.', {
                 fontFamily: 'retroFont',
                 fontSize: '25px',
                 fill: '#00ff00',
                 align: 'center'
             }).setOrigin(0.5).setDepth(9999);
 
-            // Transforma o Blob na memória numa hiperligação invisível e simula o clique do utilizador
             let urlLocal = window.URL.createObjectURL(blobFinal);
             let ancoraDownload = document.createElement('a');
             ancoraDownload.href = urlLocal;
-            ancoraDownload.download = "Sons.of.Echoes.Setup.${dados.versao_oficial}.exe";
+            ancoraDownload.download = "Sons_of_Echoes_Atualizacao.exe"; // Nome genérico para não ter conflitos de variáveis
             document.body.appendChild(ancoraDownload);
             ancoraDownload.click();
             
-            // Desaloca referências rapidamente
             document.body.removeChild(ancoraDownload);
             window.URL.revokeObjectURL(urlLocal);
         })
         .catch(erro => {
-            console.error('Falha na transferência direta:', erro);
-            textoPercentagem.setText('Erro ao descarregar! A reencaminhar fallback...');
-            this.time.delayedCall(2000, () => {
-                window.open('https://github.com/GustavoSanz/Sons_of_Echoes/releases/latest', '_blank');
+            // =========================================================
+            // 🚨 PLANO B: SE O CORS BLOQUEAR A ANIMAÇÃO (NO LIVE SERVER)
+            // =========================================================
+            console.error('Falha na transferência direta (CORS bloqueou):', erro);
+            
+            textoPercentagem.setText('A transferir via navegador...');
+            
+            // Força o navegador a descarregar o ficheiro diretamente
+            let ancoraDownload = document.createElement('a');
+            ancoraDownload.href = url;
+            document.body.appendChild(ancoraDownload);
+            ancoraDownload.click(); 
+            document.body.removeChild(ancoraDownload);
+
+            textoTitulo.setText('[ DOWNLOAD INICIADO ]');
+            
+            // Limpa a barra gráfica porque o download está a ser feito pelo Chrome
+            this.time.delayedCall(3500, () => {
+                if(barraFundo) barraFundo.destroy();
+                if(barraProgresso) barraProgresso.destroy();
+                if(textoPercentagem) textoPercentagem.destroy();
+                textoTitulo.setText('[ VERIFICA AS TUAS TRANSFERÊNCIAS ]');
             });
         });
     }
@@ -416,7 +419,7 @@ class MenuScene extends Phaser.Scene {
             });
         }
 
-        // Configurações Globais de Animações e Botões de Ação do Menu (New Game, Continue, Multiplayer, etc.)
+        // Configurações Globais de Animações e Botões de Ação do Menu
         this.anims.create({ key: 'hover_new_game', frames: this.anims.generateFrameNumbers('btn_new_game', { start: 0, end: 10 }), frameRate: 15, repeat: -1 });
         this.anims.create({ key: 'click_new_game', frames: this.anims.generateFrameNumbers('btn_new_game_click', { start: 0, end: 10 }), frameRate: 15, repeat: 0 });
 
