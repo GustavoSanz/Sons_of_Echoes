@@ -166,37 +166,32 @@ class MenuScene extends Phaser.Scene {
     }
 
     atualizarBarraElectron(w, h, progress) {
-        if (!this.barraVerdeElectron) return; // Segurança caso a barra não esteja pronta
+        if (!this.barraVerdeElectron) return;
 
-        // 1. Atualiza o tamanho verde (percentagem enviada pelo Electron)
+        // O Electron envia 'progress.percent' como um número (ex: 45.5)
         let percentagemExata = progress.percent; 
+        
+        // Atualiza a largura da barra
         this.barraVerdeElectron.width = 600 * (percentagemExata / 100);
 
-        // 2. Atualiza os textos
-        let mbDescarregados = (progress.transferred / (1024 * 1024)).toFixed(1);
-        let mbTotais = (progress.total / (1024 * 1024)).toFixed(1);
-        let velocidadeMB = (progress.bytesPerSecond / (1024 * 1024)).toFixed(1);
+        // Formata os bytes para MB
+        let mbDescarregados = (progress.transferred / 1024 / 1024).toFixed(1);
+        let mbTotais = (progress.total / 1024 / 1024).toFixed(1);
 
-        this.textoUpdateDetalhe.setText(`${mbDescarregados}MB / ${mbTotais}MB (${Math.round(percentagemExata)}%) - Velocidade: ${velocidadeMB} MB/s`);
+        this.textoUpdateDetalhe.setText(`${mbDescarregados}MB / ${mbTotais}MB (${Math.round(percentagemExata)}%)`);
 
-        // 3. ✨ A MAGIA DAS PARTÍCULAS CONTINUA AQUI! ✨
-        // Disparamos alguns chunks a cada frame de progresso recebido
-        for(let i = 0; i < 3; i++) {
+        // Efeito de partículas
+        for(let i = 0; i < 2; i++) {
             let posX_inicial = Phaser.Math.Between(w / 2 - 300, w / 2 + 300);
-            let posY_inicial = h / 2 - 60 - Math.random() * 50; 
-            let corVisual = Phaser.Utils.Array.GetRandom([0x00ffff, 0x00ff00, 0xffffff]); 
+            let visualChunk = this.add.rectangle(posX_inicial, h / 2 - 20, 6, 6, 0x00ff00).setDepth(10002);
             
-            let visualChunk = this.add.rectangle(posX_inicial, posY_inicial, 6, 6, corVisual).setDepth(10002);
-            let destinoX = (w / 2 - 300) + this.barraVerdeElectron.width;
-
             this.tweens.add({
                 targets: visualChunk,
-                x: destinoX,
+                x: (w / 2 - 300) + this.barraVerdeElectron.width,
                 y: h / 2 + 30, 
-                alpha: 0, scale: 0.2, 
-                duration: Phaser.Math.Between(200, 400),
-                ease: 'Quad.easeIn',
-                onComplete: () => { visualChunk.destroy(); }
+                alpha: 0, 
+                duration: 300,
+                onComplete: () => visualChunk.destroy()
             });
         }
     }

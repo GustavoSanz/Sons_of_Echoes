@@ -49,9 +49,10 @@ autoUpdater.on('update-available', (info) => {
     if (win) win.webContents.send('update-available', info);
 });
 
-// 2. Envia os dados do download em tempo real (percentagem, velocidade, etc) para o Phaser animar a barra
+// O Electron descarrega e envia para a janela do jogo (win)
 autoUpdater.on('download-progress', (progressObj) => {
-    if (win) win.webContents.send('download-progress', progressObj);
+    // Garantir que enviamos o objeto corretamente
+    win.webContents.send('download-progress', progressObj);
 });
 
 // 3. Avisa o Phaser que o download chegou aos 100%
