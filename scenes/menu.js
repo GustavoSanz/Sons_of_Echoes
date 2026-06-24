@@ -11,18 +11,44 @@ class MenuScene extends Phaser.Scene {
         let w = this.cameras.main.width;
         let h = this.cameras.main.height;
 
-        // Verifica se estamos no Live Server (Browser)
         const isBrowser = !navigator.userAgent.toLowerCase().includes('electron');
 
-        // Se estiveres no teu laboratório de testes (Chrome), usa o Plano B manual
-        if (isBrowser) {
-            this.verificarAtualizacaoBrowser(w, h);
+        if (!isBrowser) {
+            // =====================================================
+            // 🚀 MODO DESKTOP (ESTILO GENSHIN IMPACT)
+            // =====================================================
+            const { ipcRenderer } = window.require('electron');
+
+            // 1. Prepara os ouvidos para receber a percentagem
+            ipcRenderer.on('atualiza-barra-phaser', (event, progressObj) => {
+                if (!this.fundoUpdate) {
+                    this.prepararEcraAtualizacaoVisual(w, h);
+                }
+                this.atualizarBarraElectron(w, h, progressObj);
+            });
+
+            // 2. Prepara-se para o fim do download
+            ipcRenderer.on('atualizacao-concluida', () => {
+                if (!this.fundoUpdate) this.prepararEcraAtualizacaoVisual(w, h); // Garante que a tela existe
+                
+                this.textoUpdateTitulo.setText('[ REINICIANDO NAS TREVAS... ]');
+                this.textoUpdateDetalhe.setText('A aplicar a magia de forma invisível...');
+                
+                // Espera 2 segundos e manda o motor instalar!
+                this.time.delayedCall(2000, () => {
+                    ipcRenderer.send('reiniciar-e-instalar');
+                });
+            });
+
+            // 3. O TIRO DE PARTIDA: "Phaser carregado. Electron, podes arrancar!"
+            ipcRenderer.send('verificar-atualizacoes');
+
         } else {
-            console.log("A correr no Electron: O módulo isolado 'auto-updater.js' está a tratar das atualizações.");
+            this.verificarAtualizacaoBrowser(w, h);
         }
 
         // =========================================================
-        // ANIMAÇÕES E INTERAÇÕES BASE DO MENU
+        // O TEU MENU NORMAL COMEÇA AQUI EM BAIXO
         // =========================================================
         this.anims.create({ key: 'menu_idle', frames: this.anims.generateFrameNumbers('menu_bg_anim', { start: 0, end: 13 }), frameRate: 10, repeat: -1 });
         let bgMenu = this.add.sprite(w / 2, h / 2, 'menu_bg_anim').setDisplaySize(w, h);
@@ -65,39 +91,6 @@ class MenuScene extends Phaser.Scene {
             });
         }
 
-if (!isBrowser) {
-            // =====================================================
-            // 🚀 MODO DESKTOP FORÇADO (ELECTRON) - ESTILO GENSHIN
-            // =====================================================
-            const { ipcRenderer } = window.require('electron');
-
-            // 1. Ouvimos a percentagem a chegar do auto-updater
-            ipcRenderer.on('atualiza-barra-phaser', (event, progressObj) => {
-                
-                // Se a barra visual ainda não existir no ecrã, criamo-la!
-                if (!this.barraVerdeElectron) {
-                    this.prepararEcraAtualizacaoVisual(w, h, "Nova Versão"); // Chama aquela tua função visual
-                }
-
-                // Atualizamos a largura da barra e as partículas
-                this.atualizarBarraElectron(w, h, progressObj);
-            });
-
-            // 2. Quando chegar aos 100%, o Phaser toma o controlo e avisa o jogador
-            ipcRenderer.on('atualizacao-concluida', () => {
-                this.textoUpdateTitulo.setText('[ REINICIANDO NAS TREVAS... ]');
-                this.textoUpdateDetalhe.setText('A aplicar a magia de forma invisível...');
-                
-                // Espera 2 segundos para o jogador apreciar a barra a 100% e manda o Electron reiniciar
-                this.time.delayedCall(2000, () => {
-                    ipcRenderer.send('reiniciar-e-instalar'); // <-- Vais ter de criar este 'on' no main.js!
-                });
-            });
-        }
-
-
-
-
         this.eventoMonstros = this.time.addEvent({
             delay: 5000, loop: true, callback: () => {
                 let som = Phaser.Utils.Array.GetRandom(['grunhido1', 'grunhido2']);
@@ -108,7 +101,37 @@ if (!isBrowser) {
     }
 
     // =========================================================================
-    // FALLBACK MANUAL PARA TESTES NO NAVEGADOR
+    // VISUAIS DE ATUALIZAÇÃO DO ELECTRON
+    // =========================================================================
+    prepararEcraAtualizacaoVisual(w, h) {
+        // Bloqueia o menu inteiro
+        this.fundoUpdate = this.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0.98).setDepth(10000).setInteractive();
+
+        this.textoUpdateTitulo = this.add.text(w / 2, h / 2 - 120, '[ A ATUALIZAR O JOGO ]', { fontFamily: 'retroFont', fontSize: '40px', fill: '#00ffff', align: 'center' }).setOrigin(0.5).setDepth(10001);
+        
+        this.barraFundoElectron = this.add.rectangle(w / 2, h / 2 + 30, 600, 40, 0x222222).setOrigin(0.5).setDepth(10001);
+        this.barraVerdeElectron = this.add.rectangle(w / 2 - 300, h / 2 + 30, 0, 40, 0x00ff00).setOrigin(0, 0.5).setDepth(10001);
+
+        this.textoUpdateDetalhe = this.add.text(w / 2, h / 2 + 90, 'A contactar os deuses antigos... (0%)', { fontFamily: 'retroFont', fontSize: '24px', fill: '#ffffff', align: 'center' }).setOrigin(0.5).setDepth(10001);
+    }
+
+    atualizarBarraElectron(w, h, progress) {
+        let percentagem = progress.percent; 
+        this.barraVerdeElectron.width = 600 * (percentagem / 100);
+
+        let mbDesc = (progress.transferred / 1024 / 1024).toFixed(1);
+        let mbTot = (progress.total / 1024 / 1024).toFixed(1);
+        this.textoUpdateDetalhe.setText(`${mbDesc}MB / ${mbTot}MB (${Math.round(percentagem)}%)`);
+
+        // Efeito de Chunks
+        for(let i = 0; i < 2; i++) {
+            let chunk = this.add.rectangle(Phaser.Math.Between(w/2-300, w/2+300), h/2-20, 6, 6, 0x00ff00).setDepth(10002);
+            this.tweens.add({ targets: chunk, x: (w/2-300) + this.barraVerdeElectron.width, y: h/2+30, alpha: 0, duration: 300, onComplete: () => chunk.destroy() });
+        }
+    }
+
+    // =========================================================================
+    // FALLBACK MANUAL DO BROWSER (Mantive o teu código intacto aqui)
     // =========================================================================
     verificarAtualizacaoBrowser(w, h) {
         fetch('https://raw.githubusercontent.com/GustavoSanz/Sons_of_Echoes/refs/heads/main/versao.json')
@@ -124,7 +147,7 @@ if (!isBrowser) {
                 btnIgnorar.on('pointerdown', () => { fundoAviso.destroy(); titulo.destroy(); txtVer.destroy(); btnBaixar.destroy(); btnIgnorar.destroy(); });
                 btnBaixar.on('pointerdown', () => {
                     btnBaixar.destroy(); btnIgnorar.destroy(); txtVer.destroy();
-                    let urlAsset = `https://github.com/GustavoSanz/Sons_of_Echoes/releases/download/v${dados.versao_oficial}/Sons.of.Echoes.Setup.${dados.versao_oficial}.exe`;
+                    let urlAsset = `https://github.com/GustavoSanz/Sons_of_Echoes/releases/download/v${dados.versao_oficial}/Sons-of-Echoes-Setup-${dados.versao_oficial}.exe`;
                     this.animarDownloadFallback(urlAsset, titulo, dados.versao_oficial);
                 });
             }
@@ -146,7 +169,6 @@ if (!isBrowser) {
                 if (done) return new Blob(chunks);
                 rcv += value.length; chunks.push(value);
                 
-                // Animação Chunks
                 let chk = this.add.rectangle(Phaser.Math.Between(w/2-300, w/2+300), h/2-60-Math.random()*50, 6, 6, 0x00ffff).setDepth(10000);
                 this.tweens.add({ targets: chk, x: (w/2-300)+barraProg.width, y: h/2+20, alpha: 0, duration: 300, onComplete: () => chk.destroy() });
                 
@@ -159,7 +181,7 @@ if (!isBrowser) {
             return ler();
         }).then(blob => {
             titulo.setText('[ CONCLUÍDO! Instala o .exe ]'); txtPercent.destroy();
-            let a = document.createElement('a'); a.href = window.URL.createObjectURL(blob); a.download = `Sons.of.Echoes.Setup.${versaoAlvo}.exe`;
+            let a = document.createElement('a'); a.href = window.URL.createObjectURL(blob); a.download = `Sons-of-Echoes-Setup-${versaoAlvo}.exe`;
             document.body.appendChild(a); a.click(); document.body.removeChild(a); window.URL.revokeObjectURL(a.href);
         }).catch(err => {
             txtPercent.setText('A transferir via Chrome...');
@@ -168,7 +190,7 @@ if (!isBrowser) {
     }
 
     // =========================================================================
-    // MÉTODOS DE BASE (Áudio, Botões)
+    // RESTO DO MENU (Áudio, Botões)
     // =========================================================================
     iniciarAudioMenu() {
         if (!this.sound.get('musica_menu')) this.sound.add('musica_menu', { loop: true, volume: 0.6 }).play({ seek: 70 });
