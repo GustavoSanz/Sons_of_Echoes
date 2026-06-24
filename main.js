@@ -74,3 +74,8 @@ app.on('window-all-closed', () => {
         app.quit();
     }
 });
+
+// Adiciona isto no fim do main.js
+ipcMain.on('force-update-check', () => {
+    autoUpdater.checkForUpdates();
+});
