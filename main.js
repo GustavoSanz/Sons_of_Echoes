@@ -1,17 +1,7 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
-const { autoUpdater } = require('electron-updater');
+const { app, BrowserWindow } = require('electron');
+const iniciarSistemaDeAtualizacao = require('./updater/auto-updater'); // Importa o teu módulo limpo!
 
-autoUpdater.setFeedURL({
-  provider: 'github',
-  owner: 'GustavoSanz',
-  repo: 'Sons_of_Echoes'
-});
-
-// Remove qualquer cache que esteja a impedir o teste
-autoUpdater.autoDownload = true;
-
-
-let win; // Declaramos a janela aqui fora para conseguirmos falar com ela depois!
+let win;
 
 function createWindow () {
     win = new BrowserWindow({
@@ -21,62 +11,20 @@ function createWindow () {
         autoHideMenuBar: true,
         webPreferences: {
             nodeIntegration: true,
-            contextIsolation: false, // OBRIGATÓRIO: Permite que o Phaser "fale" com o Electron
             webSecurity: false
         }
     });
 
     win.loadFile('index.html');
+
+    // Liga o motor de atualizações passando a janela (para a barra de tarefas funcionar)
+    iniciarSistemaDeAtualizacao(win);
 }
 
-app.whenReady().then(() => {
-    createWindow();
-    
-
-    // O Electron começa a procurar atualizações silenciosamente
-    autoUpdater.checkForUpdatesAndNotify();
-
-    // FORÇA O UPDATE PARA TESTES (Apaga esta linha na versão final!)
-autoUpdater.allowDowngrade = true;
-});
-
-// =========================================================================
-// 📡 PONTE DE COMUNICAÇÃO: ELECTRON -> PHASER
-// =========================================================================
-
-// 1. Avisa o Phaser que encontrou uma atualização e vai começar a descarregar
-autoUpdater.on('update-available', (info) => {
-    if (win) win.webContents.send('update-available', info);
-});
-
-// O Electron descarrega e envia para a janela do jogo (win)
-autoUpdater.on('download-progress', (progressObj) => {
-    // Garantir que enviamos o objeto corretamente
-    win.webContents.send('download-progress', progressObj);
-});
-
-// 3. Avisa o Phaser que o download chegou aos 100%
-autoUpdater.on('update-downloaded', (info) => {
-    if (win) win.webContents.send('update-downloaded', info);
-});
-
-// =========================================================================
-// 📡 PONTE DE COMUNICAÇÃO: PHASER -> ELECTRON
-// =========================================================================
-
-// Quando a barra no jogo chegar aos 100%, o Phaser manda este sinal para o jogo fechar e instalar sozinho!
-ipcMain.on('reiniciar-e-instalar', () => {
-    autoUpdater.quitAndInstall();
-});
-
+app.whenReady().then(createWindow);
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
         app.quit();
     }
-});
-
-// Adiciona isto no fim do main.js
-ipcMain.on('force-update-check', () => {
-    autoUpdater.checkForUpdates();
 });
