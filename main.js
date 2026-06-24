@@ -10,19 +10,21 @@ function createWindow () {
         autoHideMenuBar: true, // Esconde a barra chata de cima (File, Edit, View...)
         webPreferences: {
             nodeIntegration: true,
-            webSecurity: false
+            webSecurity: false // Isto desliga o CORS no Electron!
         }
     });
 
     // Carrega o teu jogo!
     win.loadFile('index.html');
-
 }
 
-// Quando o Electron estiver pronto, abre a janela
-app.whenReady().then(createWindow);
-
-autoUpdater.checkForUpdatesAndNotify();
+// Quando o Electron estiver totalmente carregado e pronto:
+app.whenReady().then(() => {
+    
+    createWindow(); // 1. Abre a janela do jogo
+    
+    autoUpdater.checkForUpdatesAndNotify(); // 2. Começa a procurar atualizações em silêncio!
+});
 
 // ==========================================
 // SISTEMA DE AVISO DE ATUALIZAÇÕES
@@ -45,7 +47,9 @@ autoUpdater.on('update-downloaded', (info) => {
     });
 });
 
-
+// ==========================================
+// GESTÃO DE JANELAS
+// ==========================================
 // Fecha o programa totalmente quando fechares a janela
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
