@@ -11,78 +11,89 @@ class MenuScene extends Phaser.Scene {
         let w = this.cameras.main.width;
         let h = this.cameras.main.height;
 
-        // 1. Escudo de proteção e verificação de atualizações no GitHub
-        fetch('https://raw.githubusercontent.com/GustavoSanz/Sons_of_Echoes/refs/heads/main/versao.json')
-        .then(resposta => {
-            if (!resposta.ok) throw new Error(`Erro de rede: ${resposta.status}`);
-            return resposta.json();
-        })
-        .then(dados => {
-            // Compara a versão do GitHub com a versão local
-            if (dados.versao_oficial !== window.VERSAO_JOGO) {
-                
-                // Tranca todas as interações de fundo com película opaca
-                let fundoAviso = this.add.rectangle(w/2, h/2, w, h, 0x000000, 0.95).setDepth(9998).setInteractive();
-                
-                let titulo = this.add.text(w/2, h/2 - 120, '[ ATUALIZAÇÃO DISPONÍVEL ]\n\nUma nova versão do Sons of Echoes está pronta!', {
-                    fontFamily: 'retroFont',
-                    fontSize: '40px',
-                    fill: '#00ffff',
-                    align: 'center'
-                }).setOrigin(0.5).setDepth(9999);
+        // =========================================================
+        // 🕵️ DETETOR DE ELECTRON (O RADAR DE AMBIENTES)
+        // =========================================================
+        const isElectron = navigator.userAgent.toLowerCase().includes('electron');
 
-                let textoVersao = this.add.text(w/2, h/2 - 10, `A tua versão: ${window.VERSAO_JOGO}\nVersão atual: ${dados.versao_oficial}`, {
-                    fontFamily: 'retroFont',
-                    fontSize: '30px',
-                    fill: '#ff4444',
-                    align: 'center'
-                }).setOrigin(0.5).setDepth(9999);
-                
-                // Botão Interativo: Descarregar na própria App
-                let btnBaixar = this.add.text(w/2 - 160, h/2 + 120, '> DESCARREGAR <', {
-                    fontFamily: 'retroFont',
-                    fontSize: '30px',
-                    fill: '#00ff00'
-                }).setOrigin(0.5).setDepth(9999).setInteractive({ useHandCursor: true });
-
-                // Botão Interativo: Ignorar aviso (Permite jogar Singleplayer offline)
-                let btnIgnorar = this.add.text(w/2 + 160, h/2 + 120, '> IGNORAR <', {
-                    fontFamily: 'retroFont',
-                    fontSize: '30px',
-                    fill: '#aaaaaa'
-                }).setOrigin(0.5).setDepth(9999).setInteractive({ useHandCursor: true });
-
-                // Efeitos visuais de Hover nos botões
-                btnBaixar.on('pointerover', () => btnBaixar.setFill('#ffffff'));
-                btnBaixar.on('pointerout', () => btnBaixar.setFill('#00ff00'));
-                btnIgnorar.on('pointerover', () => btnIgnorar.setFill('#ff0000'));
-                btnIgnorar.on('pointerout', () => btnIgnorar.setFill('#aaaaaa'));
-
-                // Ação de Ignorar: Destrói o ecrã de bloqueio
-                btnIgnorar.on('pointerdown', () => {
-                    fundoAviso.destroy();
-                    titulo.destroy();
-                    textoVersao.destroy();
-                    btnBaixar.destroy();
-                    btnIgnorar.destroy();
-                });
-
-                // Ação de Download: Remove botões e inicia a transferência
-                btnBaixar.on('pointerdown', () => {
-                    btnBaixar.destroy();
-                    btnIgnorar.destroy();
-                    textoVersao.destroy();
+        if (!isElectron) {
+            // SE ESTIVER NO BROWSER (LIVE SERVER): Faz o painel manual com a barra verde
+            // 1. Escudo de proteção e verificação de atualizações no GitHub
+            fetch('https://raw.githubusercontent.com/GustavoSanz/Sons_of_Echoes/refs/heads/main/versao.json')
+            .then(resposta => {
+                if (!resposta.ok) throw new Error(`Erro de rede: ${resposta.status}`);
+                return resposta.json();
+            })
+            .then(dados => {
+                // Compara a versão do GitHub com a versão local
+                if (dados.versao_oficial !== window.VERSAO_JOGO) {
                     
-                    // URL direta do teu GitHub (Sem proxies!)
-                    let urlAsset = `https://github.com/GustavoSanz/Sons_of_Echoes/releases/download/v${dados.versao_oficial}/Sons.of.Echoes.Setup.${dados.versao_oficial}.exe`;
+                    // Tranca todas as interações de fundo com película opaca
+                    let fundoAviso = this.add.rectangle(w/2, h/2, w, h, 0x000000, 0.95).setDepth(9998).setInteractive();
                     
-                    this.iniciarFluxoDownload(urlAsset, titulo);
-                });
-            }
-        })
-        .catch(erro => {
-            console.log('Modo Offline: Não foi possível verificar as atualizações.', erro);
-        });
+                    let titulo = this.add.text(w/2, h/2 - 120, '[ ATUALIZAÇÃO DISPONÍVEL ]\n\nUma nova versão do Sons of Echoes está pronta!', {
+                        fontFamily: 'retroFont',
+                        fontSize: '40px',
+                        fill: '#00ffff',
+                        align: 'center'
+                    }).setOrigin(0.5).setDepth(9999);
+
+                    let textoVersao = this.add.text(w/2, h/2 - 10, `A tua versão: ${window.VERSAO_JOGO}\nVersão atual: ${dados.versao_oficial}`, {
+                        fontFamily: 'retroFont',
+                        fontSize: '30px',
+                        fill: '#ff4444',
+                        align: 'center'
+                    }).setOrigin(0.5).setDepth(9999);
+                    
+                    // Botão Interativo: Descarregar na própria App
+                    let btnBaixar = this.add.text(w/2 - 160, h/2 + 120, '> DESCARREGAR <', {
+                        fontFamily: 'retroFont',
+                        fontSize: '30px',
+                        fill: '#00ff00'
+                    }).setOrigin(0.5).setDepth(9999).setInteractive({ useHandCursor: true });
+
+                    // Botão Interativo: Ignorar aviso (Permite jogar Singleplayer offline)
+                    let btnIgnorar = this.add.text(w/2 + 160, h/2 + 120, '> IGNORAR <', {
+                        fontFamily: 'retroFont',
+                        fontSize: '30px',
+                        fill: '#aaaaaa'
+                    }).setOrigin(0.5).setDepth(9999).setInteractive({ useHandCursor: true });
+
+                    // Efeitos visuais de Hover nos botões
+                    btnBaixar.on('pointerover', () => btnBaixar.setFill('#ffffff'));
+                    btnBaixar.on('pointerout', () => btnBaixar.setFill('#00ff00'));
+                    btnIgnorar.on('pointerover', () => btnIgnorar.setFill('#ff0000'));
+                    btnIgnorar.on('pointerout', () => btnIgnorar.setFill('#aaaaaa'));
+
+                    // Ação de Ignorar: Destrói o ecrã de bloqueio
+                    btnIgnorar.on('pointerdown', () => {
+                        fundoAviso.destroy();
+                        titulo.destroy();
+                        textoVersao.destroy();
+                        btnBaixar.destroy();
+                        btnIgnorar.destroy();
+                    });
+
+                    // Ação de Download: Remove botões e inicia a transferência
+                    btnBaixar.on('pointerdown', () => {
+                        btnBaixar.destroy();
+                        btnIgnorar.destroy();
+                        textoVersao.destroy();
+                        
+                        // URL direta do teu GitHub (Sem proxies!)
+                        let urlAsset = `https://github.com/GustavoSanz/Sons_of_Echoes/releases/download/v${dados.versao_oficial}/Sons.of.Echoes.Setup.${dados.versao_oficial}.exe`;
+                        
+                        this.iniciarFluxoDownload(urlAsset, titulo);
+                    });
+                }
+            })
+            .catch(erro => {
+                console.log('Modo Offline: Não foi possível verificar as atualizações.', erro);
+            });
+        } else {
+            // SE ESTIVER NO ELECTRON: Não mostra o painel e deixa o motor tratar disso!
+            console.log("Modo Desktop: O Electron-Updater está a tratar da atualização em segundo plano!");
+        }
 
         // Fundo animado original
         this.anims.create({
