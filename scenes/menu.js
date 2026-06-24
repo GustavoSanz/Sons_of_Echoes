@@ -73,8 +73,12 @@ class MenuScene extends Phaser.Scene {
                     btnIgnorar.destroy();
                     textoVersao.destroy();
                     
-                    // Substitui a string abaixo caso queiras apontar para um arquivo específico de release (.zip/.exe)
-                    let urlAsset = `https://github.com/GustavoSanz/Sons_of_Echoes/releases/download/v${dados.versao_oficial}/Sons_of_Echoes.zip`;
+                    // 1. A URL verdadeira do teu GitHub
+                    let urlOriginal = `https://github.com/GustavoSanz/Sons_of_Echoes/releases/download/v${dados.versao_oficial}/Sons.of.Echoes.Setup.${dados.versao_oficial}.exe`;
+                    
+                    // 2. O Túnel Mágico que fura o bloqueio do CORS!
+                    let urlAsset = `https://corsproxy.io/?${encodeURIComponent(urlOriginal)}`;
+                    
                     this.iniciarFluxoDownload(urlAsset, titulo);
                 });
             }
@@ -222,6 +226,35 @@ class MenuScene extends Phaser.Scene {
                     bytesRecebidos += value.length;
                     pedaçosDeMemoria.push(value);
 
+                    // =========================================================
+                    // ✨ ANIMAÇÃO DOS PACOTES DE DADOS (CHUNKS) ✨
+                    // =========================================================
+                    
+                    // 1. O pacote nasce numa posição aleatória um pouco acima da barra
+                    let posX_inicial = Phaser.Math.Between(w / 2 - 300, w / 2 + 300);
+                    let posY_inicial = h / 2 - 80 - Math.random() * 50; 
+                    let corVisual = Phaser.Utils.Array.GetRandom([0x00ffff, 0x00ff00, 0xffffff]); 
+                    
+                    // 2. Cria o "pixel" visual
+                    let visualChunk = this.add.rectangle(posX_inicial, posY_inicial, 6, 6, corVisual).setDepth(10000);
+                    
+                    // 3. O destino do pacote é a "ponta verde" exata da barra naquele milissegundo
+                    let destinoX = (w / 2 - 300) + barraProgresso.width;
+
+                    // 4. Tween: Voa até à barra, encolhe e desaparece como magia!
+                    this.tweens.add({
+                        targets: visualChunk,
+                        x: destinoX,
+                        y: h / 2 + 20, 
+                        alpha: 0, 
+                        scale: 0.2, 
+                        duration: Phaser.Math.Between(200, 400),
+                        ease: 'Quad.easeIn',
+                        onComplete: () => { visualChunk.destroy(); }
+                    });
+                    
+                    // =========================================================
+
                     // Atualização em tempo real das métricas da UI
                     if (totalBytes) {
                         let progressoRatio = bytesRecebidos / totalBytes;
@@ -238,7 +271,7 @@ class MenuScene extends Phaser.Scene {
                         textoPercentagem.setText(`${mbRecebidos}MB descarregados...`);
                     }
 
-                    return lerPedaco();
+                    return lerPedaco(); // Pede o próximo pacote!
                 });
             };
 
@@ -263,11 +296,11 @@ class MenuScene extends Phaser.Scene {
             let urlLocal = window.URL.createObjectURL(blobFinal);
             let ancoraDownload = document.createElement('a');
             ancoraDownload.href = urlLocal;
-            ancoraDownload.download = "Sons_of_Echoes_v1.0.3.zip";
+            ancoraDownload.download = "Sons.of.Echoes.Setup.${dados.versao_oficial}.exe";
             document.body.appendChild(ancoraDownload);
             ancoraDownload.click();
             
-            // Desaloca referências para prevenir Memory Leaks no HP Victus
+            // Desaloca referências rapidamente
             document.body.removeChild(ancoraDownload);
             window.URL.revokeObjectURL(urlLocal);
         })
