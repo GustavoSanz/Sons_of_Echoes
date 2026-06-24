@@ -1,6 +1,16 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const { autoUpdater } = require('electron-updater');
 
+autoUpdater.setFeedURL({
+  provider: 'github',
+  owner: 'GustavoSanz',
+  repo: 'Sons_of_Echoes'
+});
+
+// Remove qualquer cache que esteja a impedir o teste
+autoUpdater.autoDownload = true;
+
+
 let win; // Declaramos a janela aqui fora para conseguirmos falar com ela depois!
 
 function createWindow () {
@@ -22,7 +32,6 @@ function createWindow () {
 app.whenReady().then(() => {
     createWindow();
     
-    autoUpdater.token = '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';
 
     // O Electron começa a procurar atualizações silenciosamente
     autoUpdater.checkForUpdatesAndNotify();
