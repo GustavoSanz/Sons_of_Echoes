@@ -36,6 +36,19 @@ class ConnectionScene extends Phaser.Scene {
             this.scene.start('MenuScene', { erro: `[CÓDIGO ${data.code}]\nErro: O nome "${data.nome}" já está a ser usado.\nPor favor, clica em "Mudar de Nome" no menu.` });
         });
 
+        // Ouve o aviso de versão desatualizada que o servidor envia
+        this.socket.on('erroVersao', (dados) => {
+            
+            // Desliga imediatamente para não sobrecarregar o PC/Servidor
+            this.socket.disconnect();
+            
+            // Atira o jogador de volta para o menu com a mensagem vermelha de erro!
+            // (Ajusta o nome 'MenuScene' se a tua cena do menu se chamar outra coisa)
+            this.scene.start('MenuScene', { 
+                erro: `[ATUALIZAÇÃO NECESSÁRIA]\nO teu jogo está desatualizado!\nVersão exigida pelo servidor: ${dados.exigida}` 
+            });
+        });
+
         this.socket.on('connect_error', () => { this.socket.disconnect(); this.scene.start('MenuScene', { erro: '[ERR-500]\nO servidor Host está offline ou inacessível.' }); });
     }
 }

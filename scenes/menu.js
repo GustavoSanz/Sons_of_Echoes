@@ -8,6 +8,48 @@ class MenuScene extends Phaser.Scene {
     }
     
     create() {
+
+        fetch('https://raw.githubusercontent.com/GustavoSanz/Sons_of_Echoes/main/versao.json')
+        .then(resposta => resposta.json())
+        .then(dados => {
+            
+            // 2. Compara a versão do GitHub com a versão do teu config.js
+            if (dados.versao_oficial !== window.VERSAO_JOGO) {
+                
+                // 3. SE FOR DIFERENTE, TRANCA TUDO!
+                let w = this.cameras.main.width;
+                let h = this.cameras.main.height;
+                
+                // Põe um ecrã preto por cima de todo o menu
+                this.add.rectangle(w/2, h/2, w, h, 0x000000, 0.95).setDepth(9998).setInteractive();
+                
+                // O Aviso de Atualização Gigante
+                this.add.text(w/2, h/2 - 50, '[ ATUALIZAÇÃO DISPONÍVEL ]\n\nUma nova versão do Sons of Echoes está à tua espera!', {
+                    fontFamily: 'retroFont',
+                    fontSize: '40px',
+                    fill: '#00ffff', // Ciano para chamar a atenção
+                    align: 'center'
+                }).setOrigin(0.5).setDepth(9999);
+
+                this.add.text(w/2, h/2 + 80, `A tua versão: ${window.VERSAO_JOGO}\nVersão atual: ${dados.versao_oficial}`, {
+                    fontFamily: 'retroFont',
+                    fontSize: '30px',
+                    fill: '#ff4444',
+                    align: 'center'
+                }).setOrigin(0.5).setDepth(9999);
+                
+                this.add.text(w/2, h/2 + 180, '> Por favor, descarrega a versão mais recente no GitHub. <', {
+                    fontFamily: 'retroFont',
+                    fontSize: '25px',
+                    fill: '#aaaaaa'
+                }).setOrigin(0.5).setDepth(9999);
+            }
+        })
+        .catch(erro => {
+            console.log('Modo Offline: Não foi possível verificar se há atualizações.', erro);
+        });
+
+
         let w = this.cameras.main.width;
         let h = this.cameras.main.height;
         
