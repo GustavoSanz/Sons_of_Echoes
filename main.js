@@ -1,56 +1,60 @@
-const { app, BrowserWindow, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const { autoUpdater } = require('electron-updater');
 
+let win; // Declaramos a janela aqui fora para conseguirmos falar com ela depois!
+
 function createWindow () {
-    // Cria a janela do jogo
-    const win = new BrowserWindow({
-        width: 1280,       // Resolução inicial
+    win = new BrowserWindow({
+        width: 1280,
         height: 720,
-        fullscreen: false, // Muda para true se quiseres que abra logo em ecrã inteiro
-        autoHideMenuBar: true, // Esconde a barra chata de cima (File, Edit, View...)
+        fullscreen: false,
+        autoHideMenuBar: true,
         webPreferences: {
             nodeIntegration: true,
-            webSecurity: false // Isto desliga o CORS no Electron!
+            contextIsolation: false, // OBRIGATÓRIO: Permite que o Phaser "fale" com o Electron
+            webSecurity: false
         }
     });
 
-    // Carrega o teu jogo!
     win.loadFile('index.html');
 }
 
-// Quando o Electron estiver totalmente carregado e pronto:
 app.whenReady().then(() => {
+    createWindow();
     
-    createWindow(); // 1. Abre a janela do jogo
-    
-    autoUpdater.checkForUpdatesAndNotify(); // 2. Começa a procurar atualizações em silêncio!
+    // O Electron começa a procurar atualizações silenciosamente
+    autoUpdater.checkForUpdatesAndNotify();
 });
 
-// ==========================================
-// SISTEMA DE AVISO DE ATUALIZAÇÕES
-// ==========================================
+// =========================================================================
+// 📡 PONTE DE COMUNICAÇÃO: ELECTRON -> PHASER
+// =========================================================================
+
+// 1. Avisa o Phaser que encontrou uma atualização e vai começar a descarregar
+autoUpdater.on('update-available', (info) => {
+    if (win) win.webContents.send('update-available', info);
+});
+
+// 2. Envia os dados do download em tempo real (percentagem, velocidade, etc) para o Phaser animar a barra
+autoUpdater.on('download-progress', (progressObj) => {
+    if (win) win.webContents.send('download-progress', progressObj);
+});
+
+// 3. Avisa o Phaser que o download chegou aos 100%
 autoUpdater.on('update-downloaded', (info) => {
-    const dialogOpts = {
-        type: 'info',
-        buttons: ['Reiniciar e Atualizar', 'Mais Tarde'],
-        title: 'Nova Versão Disponível!',
-        message: `Uma nova versão do Sons of Echoes (v${info.version}) acabou de ser descarregada.`,
-        detail: 'Recomendamos que reinicies o jogo agora para aplicar a atualização.'
-    };
-
-    // Mostra o pop-up nativo do Windows/Linux
-    dialog.showMessageBox(dialogOpts).then((returnValue) => {
-        if (returnValue.response === 0) {
-            // Se o jogador clicar no primeiro botão ("Reiniciar e Atualizar"), o jogo fecha e instala
-            autoUpdater.quitAndInstall();
-        }
-    });
+    if (win) win.webContents.send('update-downloaded', info);
 });
 
-// ==========================================
-// GESTÃO DE JANELAS
-// ==========================================
-// Fecha o programa totalmente quando fechares a janela
+// =========================================================================
+// 📡 PONTE DE COMUNICAÇÃO: PHASER -> ELECTRON
+// =========================================================================
+
+// Quando a barra no jogo chegar aos 100%, o Phaser manda este sinal para o jogo fechar e instalar sozinho!
+ipcMain.on('reiniciar-e-instalar', () => {
+    autoUpdater.quitAndInstall();
+});
+
+
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
         app.quit();
