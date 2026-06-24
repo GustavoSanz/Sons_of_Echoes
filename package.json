@@ -11,7 +11,7 @@
     "publish-win": "electron-builder --win -p always"
   },
   "dependencies": {
-    "electron-updater": "^6.3.9",
+    "electron-updater": "^6.8.9",
     "express": "^5.2.1",
     "socket.io": "^4.8.3"
   },
