@@ -20,20 +20,17 @@
     "electron-packager": "^17.1.2"
   },
   "build": {
-    "appId": "com.gustavosanz.sonsofechoes",
-    "productName": "Sons of Echoes",
-    "publish": [
-      {
-        "provider": "github",
-        "owner": "GustavoSanz",
-        "repo": "Sons_of_Echoes"
-      }
-    ],
-    "win": {
-      "target": "nsis"
-    },
-    "linux": {
-      "target": "AppImage"
-    }
+  "appId": "com.sons.of.echoes",
+  "publish": {
+    "provider": "github",
+    "owner": "GustavoSanz",
+    "repo": "Sons_of_Echoes"
+  },
+  "win": {
+    "target": "nsis"
+  },
+  "nsis": {
+    "oneClick": true
   }
+}
 }
