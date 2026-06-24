@@ -24,6 +24,9 @@ app.whenReady().then(() => {
     
     // O Electron começa a procurar atualizações silenciosamente
     autoUpdater.checkForUpdatesAndNotify();
+
+    // FORÇA O UPDATE PARA TESTES (Apaga esta linha na versão final!)
+autoUpdater.allowDowngrade = true;
 });
 
 // =========================================================================
