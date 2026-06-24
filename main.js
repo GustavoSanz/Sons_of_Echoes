@@ -9,7 +9,8 @@ function createWindow () {
         fullscreen: false, // Muda para true se quiseres que abra logo em ecrã inteiro
         autoHideMenuBar: true, // Esconde a barra chata de cima (File, Edit, View...)
         webPreferences: {
-            nodeIntegration: true
+            nodeIntegration: true,
+            webSecurity: false
         }
     });
 
