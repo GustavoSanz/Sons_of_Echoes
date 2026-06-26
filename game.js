@@ -10,7 +10,7 @@ const config = {
         default: 'arcade',
         arcade: {
             gravity: { y: 1500 },
-            debug: false // Podes mudar para true se precisares de ver as hitboxes
+            debug: true // Podes mudar para true se precisares de ver as hitboxes
         }
     },
     pixelArt: true,

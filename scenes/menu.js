@@ -98,6 +98,26 @@ class MenuScene extends Phaser.Scene {
                 this.eventoMonstros.delay = Phaser.Math.Between(6000, 16000);
             }
         });
+
+        // ==========================================
+        // 🚀 TELETRANSPORTE DE PROGRAMADOR (DEV SKIP)
+        // ==========================================
+        // Pressiona o número "9" (teclado numérico ou em cima) no Menu Principal
+        this.input.keyboard.on('keydown-NINE', () => {
+            console.log("[DEV] A saltar diretamente para a Gruta Descida...");
+            
+            // Pára a música do menu se estiver a tocar
+            if (this.sound.get('musica_menu')) this.sound.get('musica_menu').stop();
+            if (this.sound.get('som_noite')) this.sound.get('som_noite').stop();
+
+            // Arranca a cena e injeta dados "falsos" para o Orin nascer forte!
+            this.scene.start('SceneGrutaDescida', {
+                vidaAtual: 6,         // Mete a vida máxima para testares à vontade
+                manaAtual: 15,        // Mana cheia
+                cor: 'Original',      // A cor do boneco
+                hasCleiton: true      // Leva o Cleiton contigo para a descida
+            });
+        });
     }
 
     // =========================================================================

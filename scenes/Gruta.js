@@ -160,7 +160,7 @@ class SceneGruta extends Phaser.Scene {
         });
 
        // ==========================================
-        // 🌍 LÓGICA DO TERRAMOTO E ECRÃ "BREVEMENTE"
+        // 🌍 LÓGICA DO TERRAMOTO
         // ==========================================
         this.verificarTerramoto = () => {
             let todosMortos = this.listaKlebinhos.every(k => k.vida <= 0 || !k.active);
@@ -181,22 +181,15 @@ class SceneGruta extends Phaser.Scene {
                         // O ecrã escurece completamente
                         this.cameras.main.fadeOut(1500, 0, 0, 0); 
                         
-                        this.cameras.main.once('camerafadeoutcomplete', () => {
-                            // Em vez de carregar a GrutaDescida, mostramos os créditos!
-                            let cx = this.cameras.main.worldView.x + this.cameras.main.width / 2;
-                            let cy = this.cameras.main.worldView.y + this.cameras.main.height / 2;
-                            
-                            this.add.text(cx, cy, 'BREVEMENTE...', {
-                                fontFamily: 'monospace',
-                                fontSize: '64px',
-                                fill: '#ffffff'
-                            }).setOrigin(0.5).setDepth(9999);
-                            
-                            this.add.text(cx, cy + 80, 'Projeto desenvolvido por Gustavo, Dimitri e Lucas', {
-                                fontFamily: 'monospace',
-                                fontSize: '24px',
-                                fill: '#aaaaaa'
-                            }).setOrigin(0.5).setDepth(9999);
+                       this.cameras.main.once('camerafadeoutcomplete', () => {
+                            // Adeus "Brevemente", olá Descida!
+                            // Passamos os dados do jogador para a próxima cena
+                            this.scene.start('SceneGrutaDescida', {
+                                vidaAtual: this.player.vidaAtual,
+                                manaAtual: this.player.manaAtual,
+                                cor: this.minhaCor,
+                                hasCleiton: this.hasCleiton
+                            });
                         });
                     });
                 });
